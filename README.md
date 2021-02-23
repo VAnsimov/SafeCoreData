@@ -2,9 +2,34 @@
 
 Thread safe database layer. This layer works with the Core Data. You create entities in the Data model (* .xcdatamodel) and SafeCoreData will work with them: create, fetch, change, delete
 
-## Usage
+## Installation
 
-### Initialization
+### CocoaPods
+
+[CocoaPods](https://cocoapods.org) is a dependency manager for Cocoa projects. For usage and installation instructions, visit their website. To integrate Alamofire into your Xcode project using CocoaPods, specify it in your `Podfile`:
+
+```ruby
+pod 'SafeCoreData', :git => 'https://github.com/VAnsimov/SafeCoreData.git', :tag => '0.1.1'
+```
+
+### Swift Package Manager
+
+The [Swift Package Manager](https://swift.org/package-manager/) is a tool for automating the distribution of Swift code and is integrated into the `swift` compiler. It is in early development, but Alamofire does support its use on supported platforms.
+
+Once you have your Swift package set up, adding Alamofire as a dependency is as easy as adding it to the `dependencies` value of your `Package.swift`.
+
+```swift
+dependencies: [
+    .package(url: "https://github.com/VAnsimov/SafeCoreData.git", .upToNextMajor(from: "0.1.1"))
+],
+targets: [
+    .target(name: "YourPackageManager", dependencies: ["SafeCoreData"]),
+]
+```
+
+
+## Initialization
+
 
 ```swift
 import SafeCoreData
@@ -35,6 +60,8 @@ let configuration = SafeConfiguration.DataBase(
 
 let dataStorage = SafeCoreData(database: configuration)
 ```
+
+## Usage
 
 ### Create
 

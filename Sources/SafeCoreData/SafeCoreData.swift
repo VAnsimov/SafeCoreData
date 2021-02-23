@@ -25,13 +25,6 @@ open class SafeCoreData {
             return nil
         }
         self.contextManager = storageContextManager
-
-
-        let configuration = SafeConfiguration.DataBase(
-            modelName: "Storage",
-            bundleIdentifier: "<your bundle Identifier>",
-            printTypes: [.pathCoreData(prefix: "Database path: ")]
-        )
     }
 
     /// The SafeCoreData has a link to its internal database, you can also specify which database the SafeCoreData will link to.SafeCoreData works with the Coredata database, receive, retrieve, update entities. Quick initialization with default settings
