@@ -35,15 +35,20 @@ targets: [
 import SafeCoreData
 ```
 
-Create an object that will work with your database
+You need to create a *.xcdatamodel file
+- Select File -> New -> File...
+- Select "Data Module"
+
+After сreate an object that will work with your database
+
 
 ```swift
 let dataStorage = SafeCoreData(databaseName: "Storage", bundleIdentifier: "<your bundle Identifier>")
 ```
 
-It is possible to create a LMDataStorage with different settings
+It is possible to create a SafeConfiguration with different settings
 
-```swift
+```swif
 let configuration = SafeConfiguration.DataBase(modelName: "Storage", bundleIdentifier: "<your bundle Identifier>")
         .persistentType(NSSQLiteStoreType)
         .fileName("Storage.sqlite")
