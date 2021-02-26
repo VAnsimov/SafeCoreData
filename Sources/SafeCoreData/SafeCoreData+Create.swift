@@ -19,11 +19,13 @@ extension SafeCoreData {
     ///   - updateProperties: Block where you can override entity properties before saving to the database
     ///   - success: Called when the save was successful, returns the created and saved entity
     ///   - fail: Called when something went wrong
-    public func create<T: NSManagedObject>(type: T.Type,
-                                           configure: Configuration.Create = Configuration.Create(),
-                                           updateProperties: @escaping (T) -> Void,
-                                           success: ((T) -> Void)? = nil,
-                                           fail: ((SafeCoreDataError) -> Void)? = nil) {
+    public func create<T: NSManagedObject>(
+        type: T.Type,
+        configure: Configuration.Create = Configuration.Create(),
+        updateProperties: @escaping (T) -> Void,
+        success: ((T) -> Void)? = nil,
+        fail: ((SafeCoreDataError) -> Void)? = nil
+    ) {
         let privateContext = contextManager.createPrivateContext()
         privateContext.perform(inThread: configure.concurrency, actionBlock: { context in
 
@@ -71,7 +73,7 @@ extension SafeCoreData {
             case .success: completion(nil)
             case .error: completion(SafeCoreDataError.failSave)
             }
-        case .asyncInBackground:
+        case .async:
             DispatchQueue.global(qos: .userInteractive).async {
                 SafeCoreDataMainContext.safeMutex.wait()
 

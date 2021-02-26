@@ -18,12 +18,15 @@ extension SafeCoreData {
     ///   - config: Entity fetch process configuration
     ///   - success: Called when the save was successful, returns the result found
     ///   - fail: Called when something went wrong
-    open func fetch<T: NSManagedObject>(withType: T.Type,
-                                        configure: Configuration.Fetch = Configuration.Fetch(),
-                                        success: @escaping ([T]) -> Void,
-                                        fail: ((SafeCoreDataError) -> Void)? = nil) {
+    open func fetch<T: NSManagedObject>(
+        withType: T.Type,
+        configure: Configuration.Fetch = Configuration.Fetch(),
+        success: @escaping ([T]) -> Void,
+        fail: ((SafeCoreDataError) -> Void)? = nil
+    ) {
         let fetchRequest: NSFetchRequest<T> = self.creatFetchRequest(configure: configure)
         let privateContext = contextManager.createPrivateContext()
+
         privateContext.perform(inThread: configure.concurrency, actionBlock: { context in
             do {
                 let result = try context.fetch(fetchRequest)

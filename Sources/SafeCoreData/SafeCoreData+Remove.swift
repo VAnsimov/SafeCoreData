@@ -18,10 +18,12 @@ extension SafeCoreData {
     ///   - config: Entity remove process configuration
     ///   - success: Called when the save was successful, Returns id of deleted objects
     ///   - fail: Called when something went wrong
-    public func remove<T: NSManagedObject>(type: T.Type,
-                                           configure: Configuration.Remove = Configuration.Remove(),
-                                           success: (([NSManagedObjectID]) -> Void)? = nil,
-                                           fail: ((SafeCoreDataError) -> Void)? = nil) {
+    public func remove<T: NSManagedObject>(
+        type: T.Type,
+        configure: Configuration.Remove = Configuration.Remove(),
+        success: (([NSManagedObjectID]) -> Void)? = nil,
+        fail: ((SafeCoreDataError) -> Void)? = nil
+    ) {
         let fetchRequest = self.creatFetchRequest(entityName: String(describing: T.self),
                                                   withPredicate: configure.filter)
         let deleteRequest = self.createBatchDeleteRequest(fetchRequest: fetchRequest)

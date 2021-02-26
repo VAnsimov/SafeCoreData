@@ -18,12 +18,28 @@ extension SafeCoreData {
 // MARK: - DataBase
 
 extension SafeCoreData.Configuration {
-
+    
     ///  Database settings
     open class DataBase {
 
         public enum PrintType {
             case pathCoreData(prefix: String? = nil, postfix: String? = nil)
+        }
+
+        public enum PersistentType {
+            case sqlLite
+            case binary
+            case memory
+            case custom(value: String)
+
+            fileprivate var value: String {
+                switch self {
+                case .sqlLite: return NSSQLiteStoreType
+                case .binary: return NSBinaryStoreType
+                case .memory: return NSInMemoryStoreType
+                case let .custom(value): return value
+                }
+            }
         }
 
         let modelName: String
@@ -44,40 +60,32 @@ extension SafeCoreData.Configuration {
         ///   - pathDirectory: In which directory of the device will the database be located
         ///   - modelVersion: Version of the model database. 'nil' value is always the current version of the database
         ///   - printTypes: What to output to the console, output using print()
-        public init(modelName: String, bundleIdentifier: String, persistentType: String = NSSQLiteStoreType,
-                    persistentOptions: [AnyHashable: Any]? = nil,
-                    pathDirectory: FileManager.SearchPathDirectory = .documentDirectory,
-                    modelVersion: Int? = nil, printTypes: [PrintType] = []) {
+        public init(
+            modelName: String,
+            bundleIdentifier: String,
+            persistentType: PersistentType = .sqlLite,
+            persistentOptions: [AnyHashable: Any]? = [NSMigratePersistentStoresAutomaticallyOption: true,
+                                                      NSInferMappingModelAutomaticallyOption: true],
+            pathDirectory: FileManager.SearchPathDirectory = .documentDirectory,
+            modelVersion: Int? = nil,
+            printTypes: [PrintType] = []
+        ) {
             self.modelName = modelName
             self.fileName = "\(modelName).sqlite"
             self.bundleIdentifier = bundleIdentifier
-            self.persistentType = persistentType
+            self.persistentType = persistentType.value
             self.printTypes = printTypes
             self.pathDirectory = pathDirectory
             self.modelVersion = modelVersion
-
-            if let options = persistentOptions {
-                self.persistentOptions = options
-            } else {
-                // Оptions PersistentStore:
-                //      NSMigratePersistentStoresAutomaticallyOption - The corresponding value is an NSNumber object.
-                //      If the boolValue of the number is true and if the version hash information for the added store is
-                //      determined to be incompatible with the model for the coordinator, Core Data will attempt to locate
-                //      the source and mapping models in the application bundles, and perform a migration.
-                //
-                //      NSInferMappingModelAutomaticallyOption - The corresponding value is an NSNumber object.
-                //      If the boolValue of the number is true and the value of the
-                //      NSMigratePersistentStoresAutomaticallyOption is true, the coordinator will attempt to infer a
-                //      mapping model if none can be found.
-                self.persistentOptions = [NSMigratePersistentStoresAutomaticallyOption: true,
-                                          NSInferMappingModelAutomaticallyOption: true]
-            }
+            self.persistentOptions = persistentOptions ?? [:]
         }
+
+        // MARK: DataBase - API
 
         /// A string constant (such as NSSQLiteStoreType) that specifies the store type. Default value is 'NSSQLiteStoreType'
         @discardableResult
-        public func persistentType(_ persistentType: String) -> Self {
-            self.persistentType = persistentType
+        public func persistentType(_ persistentType: PersistentType) -> Self {
+            self.persistentType = persistentType.value
             return self
         }
 
@@ -118,24 +126,25 @@ extension SafeCoreData.Configuration {
     }
 }
 
-// MARK: - Create Configuration
+// MARK: - Create
 
 extension SafeCoreData.Configuration {
     open class Create {
+        public typealias ConcurrencyType = NSManagedObjectContext.ConcurrencyType
 
-        private(set) var concurrency: NSManagedObjectContext.ConcurrencyType = .asyncInBackground
+        private(set) var concurrency: ConcurrencyType = .async(qos: .userInteractive)
 
         /// Entity creation. Saves to the database
         /// - Parameter concurrency: How will the operation be performed
-        public init(concurrency: NSManagedObjectContext.ConcurrencyType = .asyncInBackground) {
+        public init(concurrency: ConcurrencyType = .async(qos: .userInteractive)) {
             self.concurrency = concurrency
         }
 
-        // MARK:  API
+        // MARK:  Create - API
 
-        /// How will the operation be performed. Default value is '.asyncInBackground'
+        /// How will the operation be performed. Default value is '.async'
         @discardableResult
-        public func concurrency(_ concurrencyType: NSManagedObjectContext.ConcurrencyType) -> Self {
+        public func concurrency(_ concurrencyType: ConcurrencyType) -> Self {
             self.concurrency = concurrencyType
             return self
         }
@@ -143,15 +152,16 @@ extension SafeCoreData.Configuration {
     }
 }
 
-// MARK: - Fetch Configuration
+// MARK: - Fetch
 
 extension SafeCoreData.Configuration {
     /// Entity  fetch process configuration
     open class Fetch {
+        public typealias ConcurrencyType = NSManagedObjectContext.ConcurrencyType
 
         private(set) var filter: NSPredicate?
         private(set) var sort: [NSSortDescriptor]?
-        private(set) var concurrency: NSManagedObjectContext.ConcurrencyType
+        private(set) var concurrency: ConcurrencyType
         private(set) var fetchBatchSize: Int?
         private(set) var fetchLimit: Int?
         private(set) var fetchOffset: Int = 0
@@ -164,12 +174,17 @@ extension SafeCoreData.Configuration {
         ///   - concurrency: How will the operation be performed
         ///   - fetchBatchSize: The batch size of the objects specified in the fetch request.
         ///   - fetchLimit: The fetch limit of the fetch request.
-        ///   - fetchBatchSize: The fetch offset of the fetch request. The default value is 0. This setting allows you to specify an offset at which rows will begin being returned. Effectively, the request skips the specified number of matching entries. For example, given a fetch that typically returns a, b, c, d, specifying an offset of 1 will return b, c, d, and an offset of 4 will return an empty array. Offsets are ignored in nested requests such as subqueries. This property can be used to restrict the working set of data. In combination with fetchLimit, you can create a subrange of an arbitrary result set.
+        ///   - fetchOffset: The fetch offset of the fetch request. The default value is 0. This setting allows you to specify an offset at which rows will begin being returned. Effectively, the request skips the specified number of matching entries. For example, given a fetch that typically returns a, b, c, d, specifying an offset of 1 will return b, c, d, and an offset of 4 will return an empty array. Offsets are ignored in nested requests such as subqueries. This property can be used to restrict the working set of data. In combination with fetchLimit, you can create a subrange of an arbitrary result set.
         ///   - includesSubentities: A Boolean value that indicates whether the fetch request includes subentities in the results.
-        public init(filter: NSPredicate? = nil, sort: [NSSortDescriptor]? = nil,
-                    concurrency: NSManagedObjectContext.ConcurrencyType = .asyncInBackground,
-                    fetchBatchSize: Int? = nil, fetchLimit: Int? = nil, fetchOffset: Int = 0,
-                    includesSubentities: Bool = true) {
+        public init(
+            filter: NSPredicate? = nil,
+            sort: [NSSortDescriptor]? = nil,
+            concurrency: ConcurrencyType = .async(qos: .userInteractive),
+            fetchBatchSize: Int? = nil,
+            fetchLimit: Int? = nil,
+            fetchOffset: Int = 0,
+            includesSubentities: Bool = true
+        ) {
             self.filter = filter
             self.sort = sort
             self.concurrency = concurrency
@@ -179,7 +194,7 @@ extension SafeCoreData.Configuration {
             self.includesSubentities = includesSubentities
         }
 
-        // MARK: API
+        // MARK: Fetch - API
 
         /// The principle of searching for entities in the database. When 'nil' the filter will not be applied, it will give all the results. Default value is 'nil'
         @discardableResult
@@ -195,9 +210,9 @@ extension SafeCoreData.Configuration {
             return self
         }
 
-        /// How will the operation be performed. Default value is '.asyncInBackground'
+        /// How will the operation be performed. Default value is '.async'
         @discardableResult
-        public func concurrency(_ concurrencyType: NSManagedObjectContext.ConcurrencyType) -> Self {
+        public func concurrency(_ concurrencyType: ConcurrencyType) -> Self {
             self.concurrency = concurrencyType
             return self
         }
@@ -232,27 +247,30 @@ extension SafeCoreData.Configuration {
     }
 }
 
-// MARK: - Remove Configuration
+// MARK: - Remove
 
 extension SafeCoreData.Configuration {
+    public typealias ConcurrencyType = NSManagedObjectContext.ConcurrencyType
 
     /// Entity  remove process configuration
     open class Remove {
 
         private(set) var filter: NSPredicate?
-        private(set) var concurrency: NSManagedObjectContext.ConcurrencyType = .asyncInBackground
+        private(set) var concurrency: ConcurrencyType = .async(qos: .userInteractive)
 
         /// Entity  remove process configuration
         /// - Parameters:
         ///   - filter: The principle of searching for entities in the database. When 'nil' the filter will not be applied, it will give all the results. Default value is 'nil'
         ///   - concurrency: The principle of searching for entities in the database. When 'nil' the filter will not be applied, it will give all the results
-        public init(filter: NSPredicate? = nil,
-                    concurrency: NSManagedObjectContext.ConcurrencyType = .asyncInBackground) {
+        public init(
+            filter: NSPredicate? = nil,
+            concurrency: ConcurrencyType = .async(qos: .userInteractive)
+        ) {
             self.filter = filter
             self.concurrency = concurrency
         }
 
-        // MARK: API
+        // MARK: Remove - API
 
         /// The principle of searching for entities in the database. When 'nil' the filter will not be applied, it will give all the results. Default value is 'nil'
         @discardableResult
@@ -261,9 +279,9 @@ extension SafeCoreData.Configuration {
             return self
         }
 
-        /// How will the operation be performed. Default value is '.asyncInBackground'
+        /// How will the operation be performed. Default value is '.async'
         @discardableResult
-        public func concurrency(_ concurrencyType: NSManagedObjectContext.ConcurrencyType) -> Self {
+        public func concurrency(_ concurrencyType: ConcurrencyType) -> Self {
             self.concurrency = concurrencyType
             return self
         }

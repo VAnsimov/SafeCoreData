@@ -9,7 +9,7 @@ Thread safe database layer. This layer works with the Core Data. You create enti
 [CocoaPods](https://cocoapods.org) is a dependency manager for Cocoa projects. For usage and installation instructions, visit their website. To integrate Alamofire into your Xcode project using CocoaPods, specify it in your `Podfile`:
 
 ```ruby
-pod 'SafeCoreData', :git => 'https://github.com/VAnsimov/SafeCoreData.git', :tag => '0.1.1'
+pod 'SafeCoreData', :git => 'https://github.com/VAnsimov/SafeCoreData.git', :tag => '1.0.0'
 ```
 
 ### Swift Package Manager
@@ -20,7 +20,7 @@ Once you have your Swift package set up, adding Alamofire as a dependency is as 
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/VAnsimov/SafeCoreData.git", .upToNextMajor(from: "0.1.1"))
+    .package(url: "https://github.com/VAnsimov/SafeCoreData.git", .upToNextMajor(from: "1.0.0"))
 ],
 targets: [
     .target(name: "YourPackageManager", dependencies: ["SafeCoreData"]),
@@ -43,22 +43,27 @@ After сreate an object that will work with your database
 
 
 ```swift
-let dataStorage = SafeCoreData(databaseName: "Storage", bundleIdentifier: "<your bundle Identifier>")
+let databaseName = "<your *.xcdatamodel name>"
+let bundleId =  "<your bundle Identifier>"
+let dataStorage = SafeCoreData(databaseName: databaseName, bundleIdentifier: bundleId)
 ```
 
 It is possible to create a SafeConfiguration with different settings
 
 ```swif
-let configuration = SafeConfiguration.DataBase(modelName: "Storage", bundleIdentifier: "<your bundle Identifier>")
-        .persistentType(NSSQLiteStoreType)
-        .fileName("Storage.sqlite")
+let databaseName = "<your *.xcdatamodel name>"
+let bundleId =  "<your bundle Identifier>"
+let configuration = SafeConfiguration.DataBase(modelName: databaseName, bundleIdentifier: bundleId)
+        .persistentType(.sqlLite)
+        .modelVersion(7)
         .printTypes([.pathCoreData(prefix: "Database path: ")])
 
 /* OR
 let configuration = SafeConfiguration.DataBase(
-    modelName: "Storage",
-    bundleIdentifier: "<your bundle Identifier>",
-    persistentType: NSSQLiteStoreType,
+    modelName: databaseName,
+    bundleIdentifier: bundleId,
+    persistentType: .sqlLite,
+    modelVersion: 7,
     printTypes: [.pathCoreData(prefix: "Database path: ")]
 )
 */
