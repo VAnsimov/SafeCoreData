@@ -50,7 +50,7 @@ let dataStorage = SafeCoreData(databaseName: databaseName, bundleIdentifier: bun
 
 It is possible to create a SafeConfiguration with different settings
 
-```swif
+```swift
 let databaseName = "<your *.xcdatamodel name>"
 let bundleId =  "<your bundle Identifier>"
 let configuration = SafeConfiguration.DataBase(modelName: databaseName, bundleIdentifier: bundleId)
