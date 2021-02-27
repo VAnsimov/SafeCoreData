@@ -9,7 +9,7 @@ Thread safe database layer. This layer works with the Core Data. You create enti
 [CocoaPods](https://cocoapods.org) is a dependency manager for Cocoa projects. For usage and installation instructions, visit their website. To integrate Alamofire into your Xcode project using CocoaPods, specify it in your `Podfile`:
 
 ```ruby
-pod 'SafeCoreData', :git => 'https://github.com/VAnsimov/SafeCoreData.git', :tag => '1.0.0'
+pod 'SafeCoreData', :git => 'https://github.com/VAnsimov/SafeCoreData.git', :tag => '1.0.1'
 ```
 
 ### Swift Package Manager
@@ -20,7 +20,7 @@ Once you have your Swift package set up, adding Alamofire as a dependency is as 
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/VAnsimov/SafeCoreData.git", .upToNextMajor(from: "1.0.0"))
+    .package(url: "https://github.com/VAnsimov/SafeCoreData.git", .upToNextMajor(from: "1.0.1"))
 ],
 targets: [
     .target(name: "YourPackageManager", dependencies: ["SafeCoreData"]),

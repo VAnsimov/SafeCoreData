@@ -132,11 +132,11 @@ extension SafeCoreData.Configuration {
     open class Create {
         public typealias ConcurrencyType = NSManagedObjectContext.ConcurrencyType
 
-        private(set) var concurrency: ConcurrencyType = .async(qos: .userInteractive)
+        private(set) var concurrency: ConcurrencyType = .asyncInBackground(qos: .userInteractive)
 
         /// Entity creation. Saves to the database
         /// - Parameter concurrency: How will the operation be performed
-        public init(concurrency: ConcurrencyType = .async(qos: .userInteractive)) {
+        public init(concurrency: ConcurrencyType = .asyncInBackground(qos: .userInteractive)) {
             self.concurrency = concurrency
         }
 
@@ -179,7 +179,7 @@ extension SafeCoreData.Configuration {
         public init(
             filter: NSPredicate? = nil,
             sort: [NSSortDescriptor]? = nil,
-            concurrency: ConcurrencyType = .async(qos: .userInteractive),
+            concurrency: ConcurrencyType = .asyncInBackground(qos: .userInteractive),
             fetchBatchSize: Int? = nil,
             fetchLimit: Int? = nil,
             fetchOffset: Int = 0,
@@ -256,7 +256,7 @@ extension SafeCoreData.Configuration {
     open class Remove {
 
         private(set) var filter: NSPredicate?
-        private(set) var concurrency: ConcurrencyType = .async(qos: .userInteractive)
+        private(set) var concurrency: ConcurrencyType = .asyncInBackground(qos: .userInteractive)
 
         /// Entity  remove process configuration
         /// - Parameters:
@@ -264,7 +264,7 @@ extension SafeCoreData.Configuration {
         ///   - concurrency: The principle of searching for entities in the database. When 'nil' the filter will not be applied, it will give all the results
         public init(
             filter: NSPredicate? = nil,
-            concurrency: ConcurrencyType = .async(qos: .userInteractive)
+            concurrency: ConcurrencyType = .asyncInBackground(qos: .userInteractive)
         ) {
             self.filter = filter
             self.concurrency = concurrency

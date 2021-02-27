@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name = 'SafeCoreData'
-  s.version = '1.0.0'
+  s.version = '1.0.1'
   s.license = { :type => 'MIT', :text => <<-LICENSE
                    The MIT License (MIT)
 

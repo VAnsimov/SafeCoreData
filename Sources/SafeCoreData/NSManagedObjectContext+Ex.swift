@@ -73,7 +73,7 @@ extension NSManagedObjectContext {
 extension NSManagedObjectContext {
 
     public enum ConcurrencyType {
-        case sync, async(qos: DispatchQoS.QoSClass)
+        case sync, asyncInBackground(qos: DispatchQoS.QoSClass)
     }
 
     func perform(inThread: ConcurrencyType, actionBlock: @escaping (NSManagedObjectContext) -> Void) {
@@ -84,12 +84,12 @@ extension NSManagedObjectContext {
                 actionBlock(self)
             }
 
-        case let .async(qos):
+        case let .asyncInBackground(qos):
             DispatchQueue.global(qos: qos).async {
                 SafeCoreDataMainContext.safeMutex.wait()
                 self.perform {
-                    actionBlock(self)
                     SafeCoreDataMainContext.safeMutex.signal()
+                    actionBlock(self)
                 }
             }
         }

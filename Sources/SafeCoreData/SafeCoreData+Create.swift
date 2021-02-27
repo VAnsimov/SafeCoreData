@@ -38,14 +38,13 @@ extension SafeCoreData {
             // Updating entity properties
             updateProperties(newObject)
 
-            // Save new object
-            self.save(object: newObject, context: context, threadType: configure.concurrency, completion: { error in
-                if let error = error {
-                    fail?(error)
-                } else {
-                    success?(newObject)
-                }
-            })
+            // Save result
+            let result = context.saveSync()
+
+            switch result {
+            case .success: success?(newObject)
+            case .error: fail?(SafeCoreDataError.failSave)
+            }
         })
     }
 
@@ -61,32 +60,6 @@ extension SafeCoreData {
                 return nil
         }
         return T(entity: entityDescription, insertInto: context)
-    }
-
-    private func save(object: NSManagedObject,
-                      context: NSManagedObjectContext,
-                      threadType: NSManagedObjectContext.ConcurrencyType,
-                      completion: @escaping (SafeCoreDataError?) -> Void) {
-        switch threadType {
-        case .sync:
-            switch context.saveSync() {
-            case .success: completion(nil)
-            case .error: completion(SafeCoreDataError.failSave)
-            }
-        case .async:
-            DispatchQueue.global(qos: .userInteractive).async {
-                SafeCoreDataMainContext.safeMutex.wait()
-
-                context.saveAsync(completion: { (event) in
-                    SafeCoreDataMainContext.safeMutex.signal()
-
-                    switch event {
-                    case .success: completion(nil)
-                    case .error: completion(SafeCoreDataError.failSave)
-                    }
-                })
-            }
-        }
     }
 
 }

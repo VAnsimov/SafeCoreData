@@ -12,6 +12,7 @@ import CoreData
 class SafeCoreDataMainContext {
     fileprivate(set) static var mainObjectContexts: [Int: NSManagedObjectContext] = [:]
     static let safeMutex = DispatchSemaphore(value: 1)
+    static let safeGlobalAsynQueue = DispatchQueue.global()
     private init() {}
 }
 

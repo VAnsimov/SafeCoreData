@@ -32,9 +32,7 @@ extension SafeCoreData {
                 let result = try context.fetch(fetchRequest)
                 success(result)
             } catch let error {
-                let message = "fail fetchAllComponents - \(error.localizedDescription)"
-                NSLog(message)
-                fail?(SafeCoreDataError.failFetchComponent(message: message))
+                fail?(SafeCoreDataError.failFetchComponent(message: error.localizedDescription))
             }
         })
     }
