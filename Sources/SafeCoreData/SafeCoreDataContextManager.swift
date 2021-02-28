@@ -27,9 +27,6 @@ class SafeCoreDataContextManager {
         if let context = SafeCoreDataMainContext.mainObjectContexts[index] {
             return context
         }
-        if let context = SafeCoreDataMainContext.mainObjectContexts[index] {
-            return context
-        }
         let context = NSManagedObjectContext(concurrencyType: .mainQueueConcurrencyType)
         context.performAndWait {
             context.persistentStoreCoordinator = self.createCoordinator()
