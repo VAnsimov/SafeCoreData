@@ -103,7 +103,7 @@ dataStorage.create(type: UserEntity.self, configure: configuration, updateProper
     
     let bag: BagEntity? = newObject.createChildObject(updateProperties: { newChildObject in
         newChildObject.bagColor = "blue"
-        newChildObject.parrent = newObject
+        newChildObject.parent = newObject
     })
     newObject.bag = bag
 }, success: { object in
