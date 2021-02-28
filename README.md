@@ -101,6 +101,7 @@ dataStorage.create(type: UserEntity.self, configure: configuration, updateProper
     newObject.age = Int16(29)
     newObject.personalQualities = "Versatile"
     
+    // Create child object
     let bag: BagEntity? = newObject.createChildObject(updateProperties: { newChildObject in
         newChildObject.bagColor = "blue"
         newChildObject.parent = newObject
@@ -198,15 +199,5 @@ dataStorage.fetch(withType: UserEntity.self, success: { entities in
     }, fail: { error in
         // Something went wrong
     })
-})
-```
-
-### Error
-
-```swift
-dataStorage.fetch(withType: UserEntity.self, success: { entities in
-    // All results
-}, fail: { error in 
-    // Something went wrong
 })
 ```
