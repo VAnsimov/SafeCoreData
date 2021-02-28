@@ -13,7 +13,6 @@ class SafeCoreDataTests: XCTestCase {
 
     var dataStorage: SafeCoreData!
 
-
     // MARK: Live cycle SafeCoreDataTests
 
     override func setUp() {
@@ -32,25 +31,27 @@ class SafeCoreDataTests: XCTestCase {
         let removecConfig = SafeConfiguration.Remove().concurrency(.sync)
         self.dataStorage.remove(type: UnitTestEntity.self, configure: removecConfig)
     }
+}
 
-    // MARK: Create and Update
+// MARK: - Create and Save
 
+extension SafeCoreDataTests {
     func testCreateAsync() {
-        let createAsyncExpectation = XCTestExpectation(description: "createAsyncExpectation callback should be called")
+        let expectation = XCTestExpectation(description: "fail: expectation - testCreateAsync()")
 
-        // Create
         dataStorage.create(type: UnitTestEntity.self, updateProperties: { newObject in
             newObject.attributeOne = "test"
             newObject.attributeTwo = 1234
         }, success: { object in
             XCTAssertNotNil(object.attributeOne)
+            XCTAssertNotNil(object.attributeTwo)
             XCTAssertEqual(object.attributeOne!, "test")
             XCTAssertEqual(object.attributeTwo, 1234)
-            createAsyncExpectation.fulfill()
+            expectation.fulfill()
 
-        }, fail: { _ in XCTAssert(false); createAsyncExpectation.fulfill() })
+        }, fail: { _ in XCTAssert(false); expectation.fulfill() })
 
-        wait(for: [createAsyncExpectation], timeout: 2)
+        wait(for: [expectation], timeout: 2)
     }
 
     func testCreateSync() {
@@ -60,19 +61,81 @@ class SafeCoreDataTests: XCTestCase {
         dataStorage.create(type: UnitTestEntity.self, configure: config, updateProperties: { newObject in
             newObject.attributeOne = "test"
             newObject.attributeTwo = 1234
-            isSuccess = true
         }, success: { object in
             XCTAssertNotNil(object.attributeOne)
+            XCTAssertNotNil(object.attributeTwo)
             XCTAssertEqual(object.attributeOne!, "test")
             XCTAssertEqual(object.attributeTwo, 1234)
+            isSuccess = true
         }, fail: { _ in  XCTAssert(false) })
 
         XCTAssertTrue(isSuccess)
     }
 
-    func testUpdateSync() {
-        let updateSyncExpectation = XCTestExpectation(description: "updateSyncExpectation callback should be called")
+    func testCreateChildObjectAsync() {
+        let expectation = XCTestExpectation(description: "fail: expectation - testCreateChildObjectAsync()")
 
+        // Create
+        dataStorage.create(type: UnitTestEntity.self, updateProperties: { newObject in
+            if let child: UnitTestChildEntity = newObject.createChildObject(updateProperties: { childObject in
+                childObject.attributeOne = "childtest"
+                childObject.attributeTwo = 4321
+                childObject.parrent = newObject
+            }) {
+                newObject.child = child
+            } else {
+                XCTAssert(false)
+                expectation.fulfill()
+            }
+        }, success: { object in
+            XCTAssertNotNil(object.child?.attributeOne)
+            XCTAssertNotNil(object.child?.attributeTwo)
+            XCTAssertEqual(object.child!.attributeOne!, "childtest")
+            XCTAssertEqual(object.child!.attributeTwo, 4321)
+
+            // Fecth
+            self.dataStorage.fetch(withType: UnitTestEntity.self, success: { fetch in
+                XCTAssertTrue(fetch.count == 1)
+                XCTAssertNotNil(fetch[0].child?.attributeOne)
+                XCTAssertNotNil(fetch[0].child?.attributeTwo)
+                XCTAssertEqual(fetch[0].child!.attributeOne!, "childtest")
+                XCTAssertEqual(fetch[0].child!.attributeTwo, 4321)
+                expectation.fulfill()
+            }, fail: { _ in XCTAssert(false); expectation.fulfill() })
+        }, fail: { _ in  XCTAssert(false); expectation.fulfill() })
+
+        wait(for: [expectation], timeout: 2)
+    }
+
+    func testCreateChildObjectSync() {
+        let config = SafeConfiguration.Create().concurrency(.sync)
+        var isSuccess = false
+
+        dataStorage.create(type: UnitTestEntity.self, configure: config, updateProperties: { newObject in
+            if let child: UnitTestChildEntity = newObject.createChildObject(updateProperties: { childObject in
+                childObject.attributeOne = "childtest"
+                childObject.attributeTwo = 4321
+                childObject.parrent = newObject
+            }) {
+                newObject.child = child
+            } else {
+                XCTAssert(false)
+            }
+        }, success: { object in
+            XCTAssertNotNil(object.child?.attributeOne)
+            XCTAssertNotNil(object.child?.attributeTwo)
+            XCTAssertEqual(object.child!.attributeOne!, "childtest")
+            XCTAssertEqual(object.child!.attributeTwo, 4321)
+            isSuccess = true
+        }, fail: { _ in  XCTAssert(false) })
+
+        XCTAssertTrue(isSuccess)
+    }
+
+    func testSaveSync() {
+        let expectation = XCTestExpectation(description: "fail: expectation - testSaveSync()")
+
+        // Create
         dataStorage.create(type: UnitTestEntity.self, updateProperties: { newObject in
             newObject.attributeOne = "First recording"
         }, success: { object in
@@ -83,20 +146,22 @@ class SafeCoreDataTests: XCTestCase {
 
             object.saveСhangesSync()
 
+            // Fecth
             self.dataStorage.fetch(withType: UnitTestEntity.self, success: { fetch in
                 XCTAssertEqual(fetch.count, 1)
                 XCTAssertEqual(fetch[0].attributeOne!, "update")
-                updateSyncExpectation.fulfill()
+                expectation.fulfill()
 
-            }, fail: { _ in XCTAssert(false); updateSyncExpectation.fulfill() })
-        }, fail: { _ in XCTAssert(false); updateSyncExpectation.fulfill() })
+            }, fail: { _ in XCTAssert(false); expectation.fulfill() })
+        }, fail: { _ in XCTAssert(false); expectation.fulfill() })
 
-        wait(for: [updateSyncExpectation], timeout: 2)
+        wait(for: [expectation], timeout: 2)
     }
 
-    func testUpdateAsync() {
-        let updateSyncExpectation = XCTestExpectation(description: "updateSyncExpectation callback should be called")
+    func testSaveAsync() {
+        let expectation = XCTestExpectation(description: "fail: expectation - testSaveAsync()")
 
+        // Create
         dataStorage.create(type: UnitTestEntity.self, updateProperties: { newObject in
             newObject.attributeOne = "First recording"
         }, success: { object in
@@ -105,30 +170,37 @@ class SafeCoreDataTests: XCTestCase {
 
             object.attributeOne = "update"
 
+            // Save
             object.saveСhangesAsync(sucsess: {
+
+                // Fetch
                 self.dataStorage.fetch(withType: UnitTestEntity.self, success: { fetch in
                     XCTAssertEqual(fetch.count, 1)
                     XCTAssertEqual(fetch[0].attributeOne!, "update")
-                    updateSyncExpectation.fulfill()
+                    expectation.fulfill()
 
-                }, fail: { _ in XCTAssert(false); updateSyncExpectation.fulfill() })
-            }, fail: { _ in XCTAssert(false); updateSyncExpectation.fulfill() })
-        }, fail: { _ in XCTAssert(false); updateSyncExpectation.fulfill() })
+                }, fail: { _ in XCTAssert(false); expectation.fulfill() })
+            }, fail: { _ in XCTAssert(false); expectation.fulfill() })
+        }, fail: { _ in XCTAssert(false); expectation.fulfill() })
 
-        wait(for: [updateSyncExpectation], timeout: 2)
+        wait(for: [expectation], timeout: 2)
     }
+}
 
-    // MARK: Fetch
+// MARK: - Fetch
 
+extension SafeCoreDataTests {
     func testFetchSync() {
         let createConfig = SafeConfiguration.Create().concurrency(.sync)
         var isSuccess = false
 
+        // Create synn
         dataStorage.create(type: UnitTestEntity.self, configure: createConfig, updateProperties: { newObject in
             newObject.attributeOne = "test"
             newObject.attributeTwo = 1234
         }, fail: { _ in  XCTAssert(false) })
 
+        // Fetch sync
         let fetchConfig = SafeConfiguration.Fetch().concurrency(.sync)
         self.dataStorage.fetch(withType: UnitTestEntity.self, configure: fetchConfig, success: { fetch in
             XCTAssertEqual(fetch.count, 1)
@@ -139,61 +211,66 @@ class SafeCoreDataTests: XCTestCase {
     }
 
     func testFetchPredicate() {
-        let fetchPredicateExpectation = XCTestExpectation(description:
-            "fetchPredicateExpectation callback should be called"
-        )
+        let expectation = XCTestExpectation(description: "fail: expectation - testFetchPredicate()")
 
+        // Create
         create(count: 100, updateProperties: { (index, newObject) in
             newObject.attributeTwo = Int16(index)
         }, success: {
             let searchIndex = Int16(3)
             let config = SafeConfiguration.Fetch().filter(NSPredicate(format: "attributeTwo == \(searchIndex)"))
 
+            // Fetch
             self.dataStorage.fetch(withType: UnitTestEntity.self, configure: config, success: { fetch in
                 XCTAssertEqual(fetch.count, 1)
                 XCTAssertEqual(fetch[0].attributeTwo, searchIndex)
-                fetchPredicateExpectation.fulfill()
+                expectation.fulfill()
 
-            }, fail: { _ in XCTAssert(false); fetchPredicateExpectation.fulfill() })
-        }, fail: { XCTAssert(false); fetchPredicateExpectation.fulfill() })
+            }, fail: { _ in XCTAssert(false); expectation.fulfill() })
+        }, fail: { XCTAssert(false); expectation.fulfill() })
 
-        wait(for: [fetchPredicateExpectation], timeout: 10)
+        wait(for: [expectation], timeout: 10)
     }
 
     func testFetchSort() {
-        let fetchSortExpectation = XCTestExpectation(description: "fetchSortExpectation callback should be called")
+        let expectation = XCTestExpectation(description: "fail: expectation - testFetchSort()")
 
+        // Create
         create(count: 100, updateProperties: { (_, newObject) in
             newObject.attributeTwo = Int16.random(in: 0 ..< 1000)
         }, success: {
 
             let config = SafeConfiguration.Fetch().sort([NSSortDescriptor(key: "attributeTwo", ascending: false)])
 
+            // Fetch
             self.dataStorage.fetch(withType: UnitTestEntity.self, configure: config, success: { fetch in
                 var previousValue: Int16 = fetch[0].attributeTwo
                 for item in fetch {
                     guard item.attributeTwo <= previousValue else {
                         XCTAssert(false)
-                        fetchSortExpectation.fulfill()
+                        expectation.fulfill()
                         return
                     }
                     previousValue = item.attributeTwo
                 }
                 XCTAssert(true)
-                fetchSortExpectation.fulfill()
+                expectation.fulfill()
 
-            }, fail: { _ in XCTAssert(false); fetchSortExpectation.fulfill() })
-        }, fail: { XCTAssert(false); fetchSortExpectation.fulfill() })
+            }, fail: { _ in XCTAssert(false); expectation.fulfill() })
+        }, fail: { XCTAssert(false); expectation.fulfill() })
 
-        wait(for: [fetchSortExpectation], timeout: 10)
+        wait(for: [expectation], timeout: 10)
     }
+}
 
-    // MARK: Remove
+// MARK: - Remove
 
+extension SafeCoreDataTests {
     func testRemoveSync() {
         let count = 100
         var isSuccess = false
 
+        // Create sync
         let createConfig = SafeConfiguration.Create().concurrency(.sync)
         for i in 0 ..< count {
             dataStorage.create(type: UnitTestEntity.self, configure: createConfig, updateProperties: { newObject in
@@ -201,6 +278,7 @@ class SafeCoreDataTests: XCTestCase {
             }, fail: { _ in  XCTAssert(false) })
         }
 
+        // Create remove
         let removeConfig = SafeConfiguration.Remove().concurrency(.sync)
         self.dataStorage.remove(type: UnitTestEntity.self, configure: removeConfig, success: { ids in
             XCTAssertEqual(ids.count, count)
@@ -211,7 +289,7 @@ class SafeCoreDataTests: XCTestCase {
     }
 
     func testRemove() {
-        let removeExpectation = XCTestExpectation(description: "removeExpectation callback should be called")
+        let expectation = XCTestExpectation(description: "fail: expectation - testRemove()")
         let count = 100
 
         // Create
@@ -220,18 +298,16 @@ class SafeCoreDataTests: XCTestCase {
             // Remove
             self.dataStorage.remove(type: UnitTestEntity.self, success: { ids in
                 XCTAssertEqual(ids.count, count)
-                removeExpectation.fulfill()
+                expectation.fulfill()
 
-            }, fail: { _ in XCTAssert(false); removeExpectation.fulfill() })
-        }, fail: { XCTAssert(false); removeExpectation.fulfill() })
+            }, fail: { _ in XCTAssert(false); expectation.fulfill() })
+        }, fail: { XCTAssert(false); expectation.fulfill() })
 
-        wait(for: [removeExpectation], timeout: 10)
+        wait(for: [expectation], timeout: 10)
     }
 
     func testRemovePredicate() {
-        let removePredicateExpectation = XCTestExpectation(description:
-            "removePredicateExpectation callback should be called"
-        )
+        let expectation = XCTestExpectation(description: "fail: expectation - testRemovePredicate()")
 
         // Create
         let count = 100
@@ -249,54 +325,64 @@ class SafeCoreDataTests: XCTestCase {
                 self.dataStorage.fetch(withType: UnitTestEntity.self, success: { fetch in
                     XCTAssertEqual(fetch.count, 1)
                     XCTAssertEqual(fetch[0].attributeTwo, searchIndex)
-                    removePredicateExpectation.fulfill()
+                    expectation.fulfill()
 
-                }, fail: { _ in XCTAssert(false); removePredicateExpectation.fulfill() })
-            },fail: { _ in XCTAssert(false); removePredicateExpectation.fulfill() })
-        }, fail: { XCTAssert(false); removePredicateExpectation.fulfill() })
+                }, fail: { _ in XCTAssert(false); expectation.fulfill() })
+            },fail: { _ in XCTAssert(false); expectation.fulfill() })
+        }, fail: { XCTAssert(false); expectation.fulfill() })
 
-        wait(for: [removePredicateExpectation], timeout: 10)
+        wait(for: [expectation], timeout: 10)
     }
 
     func testDeleteAsync() {
-        let deleteAsyncExpectation = XCTestExpectation(description: "deleteAsyncExpectation callback should be called")
+        let expectation = XCTestExpectation(description: "fail: expectation - testDeleteAsync()")
 
+        // Create
         create(updateProperties: nil, success: {
+
+            // Fetch
             self.dataStorage.fetch(withType: UnitTestEntity.self, success: { fetch in
                 XCTAssertEqual(fetch.count, 1)
 
+                // Remove
                 fetch[0].deleteAsync(sucsess: {
 
+                    // Fetch
                     self.dataStorage.fetch(withType: UnitTestEntity.self, success: { fetch in
                         XCTAssertEqual(fetch.count, 0)
-                        deleteAsyncExpectation.fulfill()
+                        expectation.fulfill()
 
-                    }, fail: { _ in XCTAssert(false); deleteAsyncExpectation.fulfill() })
-                }, fail: { _ in XCTAssert(false); deleteAsyncExpectation.fulfill() })
-            }, fail: { _ in XCTAssert(false); deleteAsyncExpectation.fulfill() })
-        }, fail: { XCTAssert(false); deleteAsyncExpectation.fulfill() })
+                    }, fail: { _ in XCTAssert(false); expectation.fulfill() })
+                }, fail: { _ in XCTAssert(false); expectation.fulfill() })
+            }, fail: { _ in XCTAssert(false); expectation.fulfill() })
+        }, fail: { XCTAssert(false); expectation.fulfill() })
 
-        wait(for: [deleteAsyncExpectation], timeout: 2)
+        wait(for: [expectation], timeout: 2)
     }
 
     func testDeleteSync() {
-        let deleteSyncExpectation = XCTestExpectation(description: "deleteSyncExpectation callback should be called")
+        let expectation = XCTestExpectation(description: "fail: expectation - testDeleteSync()")
 
+        // Create
         create(updateProperties: nil, success: {
+
+            // Fetch
             self.dataStorage.fetch(withType: UnitTestEntity.self, success: { fetch in
                 XCTAssertEqual(fetch.count, 1)
 
+                // Remove
                 fetch[0].deleteSync()
 
+                // Fetch
                 self.dataStorage.fetch(withType: UnitTestEntity.self, success: { fetch in
                     XCTAssertEqual(fetch.count, 0)
-                    deleteSyncExpectation.fulfill()
+                    expectation.fulfill()
 
-                }, fail: { _ in XCTAssert(false); deleteSyncExpectation.fulfill() })
-            }, fail: { _ in XCTAssert(false); deleteSyncExpectation.fulfill() })
-        }, fail: { XCTAssert(false); deleteSyncExpectation.fulfill() })
+                }, fail: { _ in XCTAssert(false); expectation.fulfill() })
+            }, fail: { _ in XCTAssert(false); expectation.fulfill() })
+        }, fail: { XCTAssert(false); expectation.fulfill() })
 
-        wait(for: [deleteSyncExpectation], timeout: 2)
+        wait(for: [expectation], timeout: 2)
     }
 
 }
