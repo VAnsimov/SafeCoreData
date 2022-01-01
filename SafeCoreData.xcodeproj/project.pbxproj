@@ -20,6 +20,7 @@
 		C048AF9B25E519900070199D /* SafeCoreData.swift in Sources */ = {isa = PBXBuildFile; fileRef = C048AF9225E519900070199D /* SafeCoreData.swift */; };
 		C048AFB625E51FDD0070199D /* UnitTestStorage.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = C048AFB425E51FDD0070199D /* UnitTestStorage.xcdatamodeld */; };
 		C048AFBE25E520A40070199D /* SafeCoreData+Configuration.swift in Sources */ = {isa = PBXBuildFile; fileRef = C048AFBD25E520A40070199D /* SafeCoreData+Configuration.swift */; };
+		C0A69C7E27807CE600FE5F28 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = C0A69C7D27807CE600FE5F28 /* README.md */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -49,6 +50,7 @@
 		C048AF9225E519900070199D /* SafeCoreData.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = SafeCoreData.swift; path = Sources/SafeCoreData/SafeCoreData.swift; sourceTree = SOURCE_ROOT; };
 		C048AFB525E51FDD0070199D /* UnitTestStorage.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = UnitTestStorage.xcdatamodel; sourceTree = "<group>"; };
 		C048AFBD25E520A40070199D /* SafeCoreData+Configuration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SafeCoreData+Configuration.swift"; sourceTree = "<group>"; };
+		C0A69C7D27807CE600FE5F28 /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -73,6 +75,7 @@
 		C048AF2425E5189B0070199D = {
 			isa = PBXGroup;
 			children = (
+				C0A69C7D27807CE600FE5F28 /* README.md */,
 				C048AF8825E519430070199D /* Sources */,
 				C048AF3B25E5189B0070199D /* SafeCoreDataTests */,
 				C048AF2F25E5189B0070199D /* Products */,
@@ -216,6 +219,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C0A69C7E27807CE600FE5F28 /* README.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

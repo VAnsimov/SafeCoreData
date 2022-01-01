@@ -130,13 +130,13 @@ extension SafeCoreData.Configuration {
 
 extension SafeCoreData.Configuration {
     open class Create {
-        public typealias ConcurrencyType = NSManagedObjectContext.ConcurrencyType
+        public typealias ConcurrencyType = NSManagedObjectContext.PerformConcurrencyType
 
-        private(set) var concurrency: ConcurrencyType = .asyncInBackground(qos: .userInteractive)
+        private(set) var concurrency: ConcurrencyType = .async
 
         /// Entity creation. Saves to the database
         /// - Parameter concurrency: How will the operation be performed
-        public init(concurrency: ConcurrencyType = .asyncInBackground(qos: .userInteractive)) {
+        public init(concurrency: ConcurrencyType = .async) {
             self.concurrency = concurrency
         }
 
@@ -157,7 +157,7 @@ extension SafeCoreData.Configuration {
 extension SafeCoreData.Configuration {
     /// Entity  fetch process configuration
     open class Fetch {
-        public typealias ConcurrencyType = NSManagedObjectContext.ConcurrencyType
+        public typealias ConcurrencyType = NSManagedObjectContext.PerformConcurrencyType
 
         private(set) var filter: NSPredicate?
         private(set) var sort: [NSSortDescriptor]?
@@ -179,7 +179,7 @@ extension SafeCoreData.Configuration {
         public init(
             filter: NSPredicate? = nil,
             sort: [NSSortDescriptor]? = nil,
-            concurrency: ConcurrencyType = .asyncInBackground(qos: .userInteractive),
+            concurrency: ConcurrencyType = .async,
             fetchBatchSize: Int? = nil,
             fetchLimit: Int? = nil,
             fetchOffset: Int = 0,
@@ -250,13 +250,13 @@ extension SafeCoreData.Configuration {
 // MARK: - Remove
 
 extension SafeCoreData.Configuration {
-    public typealias ConcurrencyType = NSManagedObjectContext.ConcurrencyType
+    public typealias ConcurrencyType = NSManagedObjectContext.PerformConcurrencyType
 
     /// Entity  remove process configuration
     open class Remove {
 
         private(set) var filter: NSPredicate?
-        private(set) var concurrency: ConcurrencyType = .asyncInBackground(qos: .userInteractive)
+        private(set) var concurrency: ConcurrencyType = .async
 
         /// Entity  remove process configuration
         /// - Parameters:
@@ -264,7 +264,7 @@ extension SafeCoreData.Configuration {
         ///   - concurrency: The principle of searching for entities in the database. When 'nil' the filter will not be applied, it will give all the results
         public init(
             filter: NSPredicate? = nil,
-            concurrency: ConcurrencyType = .asyncInBackground(qos: .userInteractive)
+            concurrency: ConcurrencyType = .async
         ) {
             self.filter = filter
             self.concurrency = concurrency
