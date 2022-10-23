@@ -1,17 +1,23 @@
-// swift-tools-version:5.3
+// swift-tools-version: 5.7
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
 
 let package = Package(
     name: "SafeCoreData",
-    platforms: [
-        .iOS(.v10), .macOS(.v10_11)
-    ],
+    platforms: [.iOS(.v13), .macOS(.v10_15)],
     products: [
-        .library(name: "SafeCoreData", targets: ["SafeCoreData"])
+        .library(
+            name: "SafeCoreData",
+            targets: ["SafeCoreData"]),
     ],
+    dependencies: [],
     targets: [
-        .target(name: "SafeCoreData", path: "Sources/SafeCoreData")
+        .target(
+            name: "SafeCoreData",
+            dependencies: []),
+        .testTarget(
+            name: "SafeCoreDataTests",
+            dependencies: ["SafeCoreData"]),
     ]
 )
