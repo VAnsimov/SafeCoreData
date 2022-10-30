@@ -74,6 +74,7 @@ extension SafeCoreDataService {
 }
 
 // MARK: - Private operation
+
 private extension SafeCoreDataService {
 
     func creatFetchRequest<T>(configure: SafeCoreData.Fetch.ConfigurationSync) -> NSFetchRequest<T> {

@@ -2,6 +2,12 @@
 
 Thread safe database layer. This layer works with the Core Data. You create entities in the Data model (* .xcdatamodel) and SafeCoreData will work with them: create, fetch, change, delete
 
+- [Installation](#installation)
+- [Initialization](#initialization)
+- [Usage - Callbacks](#usage-callbacks)
+- [Usage - Async/Await](#usage-async/await)
+- [Usage - Combine](#usage-combine)
+
 ## Installation
 
 ### Swift Package Manager
@@ -12,13 +18,12 @@ Once you have your Swift package set up, adding Alamofire as a dependency is as 
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/VAnsimov/SafeCoreData.git", .upToNextMajor(from: "2.0.0"))
+    .package(url: "https://github.com/VAnsimov/SafeCoreData.git", .upToNextMajor(from: "2.0.1"))
 ],
 targets: [
     .target(name: "<YourPackageManager>", dependencies: ["SafeCoreData"]),
 ]
 ```
-
 
 ## Initialization
 
@@ -61,7 +66,7 @@ let configuration = SafeConfiguration.DataBase(
 let dataStorage = SafeCoreData(database: configuration)
 ```
 
-## Usage
+## Usage-Callbacks
 
 ### Create single object
 
@@ -80,44 +85,6 @@ SafeCoreDataCreate(dataStorage: dataStorage)
             })
 ```
 
-Or Async/Await version
-
-```swift
-Task {
-    let data = try? await SafeCoreDataCreate(dataStorage: dataStorage)
-        .createObject(withType: UserEntity.self, updateProperties: { newObject in
-            newObject.name = "Anna"
-            newObject.age = Int16(29)
-            newObject.personalQualities = "Versatile"
-        }).value
-        
-    // Entity created and saved
-}
-```
-
-Or Combine version
-
-```swift
-let createFuture = SafeCoreDataCreate(dataStorage: dataStorage)
-        .createObjectFuture(withType: UserEntity.self, updateProperties: { newObject in
-            newObject.name = "Anna"
-            newObject.age = Int16(29)
-            newObject.personalQualities = "Versatile"
-        })
-
-createFuture.sink(receiveCompletion: { completion in
-    switch completion {
-    case let .failure(error):
-        // Something went wrong
-    case .finished:
-        break
-    }
-}, receiveValue: { result in
-    // Entity created and saved
-}).store(in: &cancellable)
-
-```
-
 ### Create list objects
 
 ```swift
@@ -134,42 +101,6 @@ SafeCoreDataCreate(dataStorage: dataStorage)
             })
 ```
 
-Or Async/Await version
-
-```swift
-Task {
-    let names = ["Anna", "Jack", "Harry"]
-
-    let data = try? await SafeCoreDataCreate(dataStorage: dataStorage)
-        .createListOfObjects(withType: UserEntity.self, list: names, updateProperties: { item, newObject in
-            newObject.name = item
-        }).value
-        
-    // Entity created and saved
-}
-```
-
-Or Combine version
-
-```swift
-let createFuture = SafeCoreDataCreate(dataStorage: dataStorage)
-        .createListOfObjectsFuture(withType: UserEntity.self, list: names, updateProperties: { item, newObject in
-            newObject.name = item
-        })
-
-createFuture.sink(receiveCompletion: { completion in
-    switch completion {
-    case let .failure(error):
-        // Something went wrong
-    case .finished:
-        break
-    }
-}, receiveValue: { result in
-    // Entity created and saved
-}).store(in: &cancellable)
-
-```
-
 ### Fetch
 
 ```swift
@@ -182,39 +113,6 @@ SafeCoreDataFetch(dataStorage: dataStorage)
     }, failure: { error in
         // Something went wrong
     })
-```
-
-Or Async/Await version
-
-```swift
-Task {
-    let fetchResult = try? await SafeCoreDataFetch(dataStorage: dataStorage)
-        .filter(NSPredicate(format: "age == \(Int16(29))"))
-        .fetch(withType: UserEntity.self).value
-        
-    // Results
-}
-```
-
-Or Combine version
-
-```swift
-let fetchFuture = SafeCoreDataFetch(dataStorage: dataStorage)
-    .sort([NSSortDescriptor(key: "age", ascending: true)])
-    .fetchFuture(withType: UserEntity.self).eraseToAnyPublisher()
-
-fetchFuture
-    .sink { completion in
-        switch completion {
-        case let .failure(error):
-            // Something went wrong
-
-        case .finished:
-            break
-        }
-    } receiveValue: { fetchResult in
-        // Results
-    }.store(in: &cancellable)
 ```
 
 ### Save
@@ -282,4 +180,215 @@ SafeCoreDataFetch(dataStorage: dataStorage)
             // Something went wrong
         })
     })
+```
+
+## Usage-Async/Await
+
+### Create single object
+
+```swift
+let createdObject = try? await SafeCoreDataCreate(dataStorage: dataStorage)
+    .createObject(withType: UserEntity.self, updateProperties: { newObject in
+        newObject.name = "Anna"
+        newObject.age = Int16(29)
+        newObject.personalQualities = "Versatile"
+    }).value
+```
+
+### Create list objects
+
+```swift
+let names = ["Anna", "Jack", "Harry"]
+
+let createdObjects = try? await SafeCoreDataCreate(dataStorage: dataStorage)
+    .createListOfObjects(withType: UserEntity.self, list: names, updateProperties: { item, newObject in
+        newObject.name = item
+    }).value
+```
+
+### Fetch
+
+```swift
+let fetchResult = try? await SafeCoreDataFetch(dataStorage: dataStorage)
+    .filter(NSPredicate(format: "age == \(Int16(29))"))
+    .fetch(withType: UserEntity.self).value
+```
+
+### Save
+
+```swift
+let fetchResult = try? await SafeCoreDataFetch(dataStorage: dataStorage)
+    .fetch(withType: UserEntity.self).value
+    
+let firstObject = result.value?.first
+        
+firstObject?.personalQualities = "Initiative"
+    
+// Synchronous save
+firstObject?.saveСhangesSync()
+    
+firstObject?.personalQualities = "Versatile"
+    
+// Or asynchronous save
+firstObject?.saveСhangesAsync(sucsess: {
+    // Changes saved
+}, fail: { error in 
+    // Something went wrong
+})
+```
+
+### Remove
+
+```swift
+
+let removeStorage = SafeCoreDataRemove(dataStorage: dataStorage)
+
+// Removes results by filter
+let removeIds = try? await removeStorage
+    .filter(NSPredicate(format: "age == \(Int16(29))"))
+    .remove(withType: UserEntity.self)
+
+// Removes all results
+let removeAllIds = try? await removeStorage
+    .remove(withType: UserEntity.self)
+
+```
+
+Or
+
+```swift
+let fetchResult = try? await SafeCoreDataFetch(dataStorage: dataStorage)
+    .fetch(withType: UserEntity.self).value
+    
+let firstObject = result.value?.first
+
+// Synchronous deletion
+firstObject?.deleteSync()
+    
+// Or asynchronous deletion
+firstObject?.deleteAsync(sucsess: {
+    // Entity deleted successfully
+}, fail: { error in
+    // Something went wrong
+})
+```
+
+## Usage-Combine
+
+### Create single object
+
+```swift
+let createFuture = SafeCoreDataCreate(dataStorage: dataStorage)
+        .createObjectFuture(withType: UserEntity.self, updateProperties: { newObject in
+            newObject.name = "Anna"
+            newObject.age = Int16(29)
+            newObject.personalQualities = "Versatile"
+        })
+
+createFuture.sink(receiveCompletion: { _ in
+    // Completion
+}, receiveValue: { result in
+    // Entity created and saved
+}).store(in: &cancellable)
+
+```
+
+### Create list objects
+
+```swift
+let createFuture = SafeCoreDataCreate(dataStorage: dataStorage)
+        .createListOfObjectsFuture(withType: UserEntity.self, list: names, updateProperties: { item, newObject in
+            newObject.name = item
+        })
+
+createFuture.sink(receiveCompletion: { _ in
+    // Completion
+}, receiveValue: { result in
+    // Entity created and saved
+}).store(in: &cancellable)
+```
+
+### Fetch
+
+```swift
+SafeCoreDataFetch(dataStorage: dataStorage)
+    .fetchFuture(withType: UserEntity.self)
+    .sink {  _ in
+        // Completion
+    } receiveValue: { fetchResult in
+        // Results
+    }.store(in: &cancellable)
+```
+
+### Save
+
+```swift
+let fetchFuture = SafeCoreDataFetch(dataStorage: dataStorage)
+    .fetchFuture(withType: UserEntity.self)
+
+fetchFuture
+    .sink {  _ in
+        // Completion
+    } receiveValue: { fetchResult in
+        let firstObject = fetchResult.value?.first
+        
+        // Synchronous deletion
+        firstObject?.deleteSync()
+    
+        // Or asynchronous deletion
+        firstObject?.deleteAsync(sucsess: {
+            // Entity deleted successfully
+        }, fail: { error in
+            // Something went wrong
+        })
+    }.store(in: &cancellable)
+```
+
+### Remove
+
+```swift
+
+let removeStorage = SafeCoreDataRemove(dataStorage: dataStorage)
+
+// Removes results by filter
+removeStorage
+    .filter(NSPredicate(format: "age == \(Int16(29))"))
+    .removeFuture(withType: UserEntity.self)
+    .sink {  _ in
+        // Completion
+    } receiveValue: { removeIds in
+        // Found results deleted
+    }.store(in: &cancellable)
+    
+    
+// Removes all results
+removeStorage
+    .removeFuture(withType: UserEntity.self)
+    .sink { _ in
+        // completion
+    } receiveValue: { removeIds in
+        // Found results deleted
+    }.store(in: &cancellable)
+```
+
+Or
+
+```swift
+let fetchFuture = SafeCoreDataFetch(dataStorage: dataStorage)
+    .fetchFuture(withType: UserEntity.self)
+    .sink { _ in
+        // Completion
+    } receiveValue: { fetchResult in
+        let firstObject = fetchResult.value?.first
+        
+        // Synchronous deletion
+        firstObject?.deleteSync()
+    
+        // Or asynchronous deletion
+        firstObject?.deleteAsync(sucsess: {
+            // Entity deleted successfully
+        }, fail: { error in
+            // Something went wrong
+        })
+    }.store(in: &cancellable)
 ```

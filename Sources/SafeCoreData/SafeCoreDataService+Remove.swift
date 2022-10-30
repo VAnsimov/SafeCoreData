@@ -106,6 +106,7 @@ extension SafeCoreDataService {
 }
 
 // MARK: - Private operation
+
 private extension SafeCoreDataService {
 
     private func creatFetchRequest(entityName: String,

@@ -201,7 +201,39 @@ extension SafeCoreData.Service.Create {
     ///   - list: objects to be create
     ///   - configure: Entity creation process configuration
     ///   - updateProperties: Block where you can override entity properties before saving to the database
-    ///   - completion: Called when the save was successful, returns the result found OR when something went wrong
+    ///   - success: Called when the save was successful, returns the created and saved entities
+    ///   - failure: Called when something went wrong
+    public func createListOfObjects<T: NSManagedObject, L>(
+        withType: T.Type,
+        list: [L],
+        configure: SafeCoreData.Create.Configuration = .init(),
+        updateProperties: @escaping (L, T) -> Void,
+        success: (([T]) -> Void)? = nil,
+        failure: ((SafeCoreDataError) -> Void)? = nil
+    ) {
+        dataStorage.create(
+            withType: withType,
+            list: list,
+            configure: self,
+            updateProperties: updateProperties,
+            completion: { result in
+                switch result.resultType {
+                case let .success(objects):
+                    success?(objects)
+
+                case let .failure(error):
+                    failure?(error)
+                }
+            })
+    }
+
+    /// Entity creation. Saves to the database
+    /// - Parameters:
+    ///   - withType: The type of entity to be created
+    ///   - list: objects to be create
+    ///   - configure: Entity creation process configuration
+    ///   - failure: Called when something went wrong
+    ///   - success: Called when the save was successful, returns the created and saved entities
     public func createListOfObjects<T: NSManagedObject, L>(
         withType: T.Type,
         list: [L],
