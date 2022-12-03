@@ -20,7 +20,7 @@ class SafeCoreDataCreateHelper {
         updateProperties: ((Int, UnitTestEntity) -> Void)? = nil,
         success: (() -> Void)? = nil,
         failure: (() -> Void)? = nil) {
-            let createStorage = SafeCoreDataCreate(dataStorage: dataStorage)
+            let createStorage = dataStorage.withCreateParameters
             for i in 0 ..< count {
                 let result = createStorage
                     .createObjectSync(withType: UnitTestEntity.self, updateProperties: { object in

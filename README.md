@@ -18,7 +18,7 @@ Once you have your Swift package set up, adding Alamofire as a dependency is as 
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/VAnsimov/SafeCoreData.git", .upToNextMajor(from: "2.0.1"))
+    .package(url: "https://github.com/VAnsimov/SafeCoreData.git", .upToNextMajor(from: "2.1.0"))
 ],
 targets: [
     .target(name: "<YourPackageManager>", dependencies: ["SafeCoreData"]),
@@ -27,22 +27,32 @@ targets: [
 
 ## Initialization
 
-
-```swift
-import SafeCoreData
-```
+#### Step 1
 
 You need to create a *.xcdatamodel file
 - Select File -> New -> File...
 - Select "Data Module"
 
-After сreate an object that will work with your database
+#### Step 2
 
+After that you need to create an NSManagedObject in the *.xcdatamodel
+
+Sometimes it is necessary to reload Xcode so that the created NSManagedObject xcode can see
+
+#### Step 3
+
+```swift
+import SafeCoreData
+```
+
+#### Step 4
 
 ```swift
 let databaseName = "<your *.xcdatamodel name>"
-let dataStorage = SafeCoreData(databaseName: databaseName, bundle: .main)
+let safeCoreData = try? SafeCoreData(databaseName: databaseName, bundle: .main)
 ```
+
+OR
 
 It is possible to create a SafeConfiguration with different settings
 
@@ -51,7 +61,7 @@ let databaseName = "<your *.xcdatamodel name>"
 let configuration = SafeCoreData.DataBase.Configuration(modelName: databaseName, bundleType: .bundle(.main))
         .persistentType(.sqlLite)
         .modelVersion(7)
-        .printTypes([.pathCoreData(prefix: "Database path: ")])
+        .pathDirectory(.cachesDirectory) // FileManager.SearchPathDirectory.cachesDirectory is for temporary storage
 
 /* OR
 let configuration = SafeConfiguration.DataBase(
@@ -63,26 +73,34 @@ let configuration = SafeConfiguration.DataBase(
 )
 */
 
-let dataStorage = SafeCoreData(database: configuration)
+let safeCoreData = try? SafeCoreData(database: configuration)
 ```
 
 ## Usage-Callbacks
 
+#### Important
+
+The SafeCoreData.Service.Data type is returned for all operations. Calling deinit from this structure all data in the NSManagedObject will be erased.
+
+All operations are performed in a private context and when SafeCoreData.Service.Data deinit is called, the private context is also destroyed and the results that are bound to it are also deleted.
+
+When did you get data it is recommended NSManagedObject to map into another type to save the data 
+
 ### Create single object
 
 ```swift
-
-SafeCoreDataCreate(dataStorage: dataStorage)
-            .outputThread(.global)
-            .createObject(withTyp: UserEntity.self, updateProperties: { newObject in
-                newObject.name = "Anna"
-                newObject.age = Int16(29)
-                newObject.personalQualities = "Versatile"
-            }, success: { object in
-                // Entity created and saved
-            }, failure: { error in 
-                // Something went wrong
-            })
+safeCoreData
+    .withCreateParameters
+    .outputThread(.global)
+    .createObject(withTyp: UserEntity.self, updateProperties: { newObject in
+        newObject.name = "Anna"
+        newObject.age = Int16(29)
+        newObject.personalQualities = "Versatile"
+    }, success: { object in
+        // Entity created and saved
+    }, failure: { error in 
+        // Something went wrong
+    })
 ```
 
 ### Create list objects
@@ -90,21 +108,32 @@ SafeCoreDataCreate(dataStorage: dataStorage)
 ```swift
 let names = ["Anna", "Jack", "Harry"]
 
-SafeCoreDataCreate(dataStorage: dataStorage)
-            .outputThread(.main)
-            .createListOfObjects(type: UserEntity.self, list: names, updateProperties: { item, newObject in
-                newObject.name = item
-            }, success: { object in
-                // Entity created and saved
-            }, failure: { error in 
-                // Something went wrong
-            })
+safeCoreData
+    .withCreateParameters
+    .createListOfObjects(type: UserEntity.self, list: names, updateProperties: { item, newObject in
+        newObject.name = item
+    }, success: { object in
+        // Entity created and saved
+    }, failure: { error in 
+        // Something went wrong
+    })
 ```
 
 ### Fetch
 
 ```swift
-SafeCoreDataFetch(dataStorage: dataStorage)
+// Fetch all result
+safeCoreData
+    .withFetchParameters
+    .fetch(withType: UserEntity.self, success: { object in
+        // Results
+    }, failure: { error in
+        // Something went wrong
+    })
+   
+// Fetch filter result 
+safeCoreData
+    .withFetchParameters
     .filter(NSPredicate(format: "age == \(Int16(29))"))
     .sort([NSSortDescriptor(key: "age", ascending: true)])
     .outputThread(.global)
@@ -115,11 +144,11 @@ SafeCoreDataFetch(dataStorage: dataStorage)
     })
 ```
 
-### Save
-
+### Save/Change
 
 ```swift
-SafeCoreDataFetch(dataStorage: dataStorage)
+safeCoreData
+    .withFetchParameters
     .fetch(withType: UserEntity.self, success: { result in
         let firstObject = result.value?.first
         
@@ -127,8 +156,6 @@ SafeCoreDataFetch(dataStorage: dataStorage)
     
         // Synchronous save
         firstObject?.saveСhangesSync()
-    
-        firstObject?.personalQualities = "Versatile"
     
         // Or asynchronous save
         firstObject?.saveСhangesAsync(sucsess: {
@@ -143,19 +170,19 @@ SafeCoreDataFetch(dataStorage: dataStorage)
 
 ```swift
 
-let removeStorage = SafeCoreDataRemove(dataStorage: dataStorage)
-
-// Removes results by filter
-removeStorage
-    .filter(NSPredicate(format: "age == \(Int16(29))"))
+// Removes all results
+safeCoreData
+    .withRemoveParameters    
     .remove(withType: UserEntity.self, success: { object in
         // Found results deleted
     }, failure: { error in
         // Something went wrong
     })
     
-// Removes all results
-removeStorage    
+// Removes results by filter
+safeCoreData
+    .withRemoveParameters
+    .filter(NSPredicate(format: "age == \(Int16(29))"))
     .remove(withType: UserEntity.self, success: { object in
         // Found results deleted
     }, failure: { error in
@@ -166,7 +193,8 @@ removeStorage
 Or
 
 ```swift
-SafeCoreDataFetch(dataStorage: dataStorage)
+safeCoreData
+    .withFetchParameters
     .fetch(withType: UserEntity.self, success: { result in
         let firstObject = result.value?.first
         
@@ -184,15 +212,26 @@ SafeCoreDataFetch(dataStorage: dataStorage)
 
 ## Usage-Async/Await
 
+#### Important
+
+The SafeCoreData.Service.Data type is returned for all operations. Calling deinit from this structure all data in the NSManagedObject will be erased.
+
+All operations are performed in a private context and when SafeCoreData.Service.Data deinit is called, the private context is also destroyed and the results that are bound to it are also deleted.
+
+When did you get data it is recommended NSManagedObject to map into another type to save the data 
+
 ### Create single object
 
 ```swift
-let createdObject = try? await SafeCoreDataCreate(dataStorage: dataStorage)
+let result = try await safeCoreData
+    .withCreateParameters
     .createObject(withType: UserEntity.self, updateProperties: { newObject in
         newObject.name = "Anna"
         newObject.age = Int16(29)
         newObject.personalQualities = "Versatile"
-    }).value
+    })
+    
+let createdObject = result.value
 ```
 
 ### Create list objects
@@ -200,195 +239,212 @@ let createdObject = try? await SafeCoreDataCreate(dataStorage: dataStorage)
 ```swift
 let names = ["Anna", "Jack", "Harry"]
 
-let createdObjects = try? await SafeCoreDataCreate(dataStorage: dataStorage)
+let createdResult = try? await safeCoreData
+    .withCreateParameters
     .createListOfObjects(withType: UserEntity.self, list: names, updateProperties: { item, newObject in
         newObject.name = item
     }).value
+    
+let createdObjects = createdResult.value
 ```
 
 ### Fetch
 
 ```swift
-let fetchResult = try? await SafeCoreDataFetch(dataStorage: dataStorage)
+// Fetch all results
+let fetchAllResult = try? await safeCoreData
+    .withFetchParameters
+    .fetch(withType: UserEntity.self)
+    
+let fetchAllObjects = fetchAllResult.value
+
+// Fetch filter results
+let fetchResult = try? await safeCoreData
+    .withFetchParameters
     .filter(NSPredicate(format: "age == \(Int16(29))"))
-    .fetch(withType: UserEntity.self).value
+    .fetch(withType: UserEntity.self)
+    
+let fetchObjects = fetchResult.value
 ```
 
-### Save
+### Save/Change
 
 ```swift
-let fetchResult = try? await SafeCoreDataFetch(dataStorage: dataStorage)
-    .fetch(withType: UserEntity.self).value
+let fetchResult = try? await safeCoreData
+    .withFetchParameters
+    .fetch(withType: UserEntity.self)
     
-let firstObject = result.value?.first
+let firstObject = fetchResult.value?.first
         
 firstObject?.personalQualities = "Initiative"
     
 // Synchronous save
 firstObject?.saveСhangesSync()
     
-firstObject?.personalQualities = "Versatile"
-    
 // Or asynchronous save
-firstObject?.saveСhangesAsync(sucsess: {
-    // Changes saved
-}, fail: { error in 
-    // Something went wrong
-})
+await firstObject?.saveСhanges()
 ```
 
 ### Remove
 
 ```swift
-
-let removeStorage = SafeCoreDataRemove(dataStorage: dataStorage)
+// Removes all results
+let removeAllResult = try? await safeCoreData
+    .withRemoveParameters
+    .remove(withType: UserEntity.self)
+    
+let removeAllIds = removeAllResult.value
 
 // Removes results by filter
-let removeIds = try? await removeStorage
+let removeResult = try? await safeCoreData
+    .withRemoveParameters
     .filter(NSPredicate(format: "age == \(Int16(29))"))
     .remove(withType: UserEntity.self)
 
-// Removes all results
-let removeAllIds = try? await removeStorage
-    .remove(withType: UserEntity.self)
-
+let removeIds = removeResult.value
 ```
 
 Or
 
 ```swift
-let fetchResult = try? await SafeCoreDataFetch(dataStorage: dataStorage)
-    .fetch(withType: UserEntity.self).value
+let fetchResult = try? await safeCoreData
+    .withFetchParameters
+    .fetch(withType: UserEntity.self)
     
-let firstObject = result.value?.first
+let firstObject = fetchResult.value?.first
 
 // Synchronous deletion
 firstObject?.deleteSync()
     
 // Or asynchronous deletion
-firstObject?.deleteAsync(sucsess: {
-    // Entity deleted successfully
-}, fail: { error in
-    // Something went wrong
-})
+await firstObject?.delete()
 ```
 
 ## Usage-Combine
 
+#### Important
+
+The SafeCoreData.Service.Data type is returned for all operations. Calling deinit from this structure all data in the NSManagedObject will be erased.
+
+All operations are performed in a private context and when SafeCoreData.Service.Data deinit is called, the private context is also destroyed and the results that are bound to it are also deleted.
+
+When did you get data it is recommended NSManagedObject to map into another type to save the data 
+
 ### Create single object
 
 ```swift
-let createFuture = SafeCoreDataCreate(dataStorage: dataStorage)
-        .createObjectFuture(withType: UserEntity.self, updateProperties: { newObject in
-            newObject.name = "Anna"
-            newObject.age = Int16(29)
-            newObject.personalQualities = "Versatile"
-        })
-
-createFuture.sink(receiveCompletion: { _ in
-    // Completion
-}, receiveValue: { result in
-    // Entity created and saved
-}).store(in: &cancellable)
+        
+let createFuture = safeCoreData
+    .withCreateParameters
+    .createObjectFuture(withType: UserEntity.self, updateProperties: { newObject in
+        newObject.name = "Anna"
+        newObject.age = Int16(29)
+        newObject.personalQualities = "Versatile"
+    })
+    .sink { _ in
+        // Completion
+    } receiveValue: { result in
+        // Entity created and saved
+    }
+    .store(in: &cancellable)
 
 ```
 
 ### Create list objects
 
 ```swift
-let createFuture = SafeCoreDataCreate(dataStorage: dataStorage)
-        .createListOfObjectsFuture(withType: UserEntity.self, list: names, updateProperties: { item, newObject in
-            newObject.name = item
-        })
+let names = ["Anna", "Jack", "Harry"]
 
-createFuture.sink(receiveCompletion: { _ in
-    // Completion
-}, receiveValue: { result in
-    // Entity created and saved
-}).store(in: &cancellable)
+safeCoreData
+    .withCreateParameters
+    .createListOfObjectsFuture(withType: UserEntity.self, list: names, updateProperties: { item, newObject in
+        newObject.name = item
+    })
+    .sink { _ in
+        // Completion
+    } receiveValue: { result in
+        // Entity created and saved
+    }
+    .store(in: &cancellable)
 ```
 
 ### Fetch
 
 ```swift
-SafeCoreDataFetch(dataStorage: dataStorage)
+safeCoreData
+    .withFetchParameters
     .fetchFuture(withType: UserEntity.self)
     .sink {  _ in
         // Completion
     } receiveValue: { fetchResult in
         // Results
-    }.store(in: &cancellable)
+    }
+    .store(in: &cancellable)
 ```
 
-### Save
+### Save/Change
 
 ```swift
-let fetchFuture = SafeCoreDataFetch(dataStorage: dataStorage)
+safeCoreData
+    .withFetchParameters
     .fetchFuture(withType: UserEntity.self)
-
-fetchFuture
+    .flatMap { fetchResult in
+        let firstObject = $0.value.first
+        
+        firstObject?.personalQualities = "Initiative"
+        
+        // Save object
+        return firstObject?.saveСhangesFeature() ?? Empty().eraseToAnyPublisher()
+    }
     .sink {  _ in
         // Completion
     } receiveValue: { fetchResult in
-        let firstObject = fetchResult.value?.first
-        
-        // Synchronous deletion
-        firstObject?.deleteSync()
-    
-        // Or asynchronous deletion
-        firstObject?.deleteAsync(sucsess: {
-            // Entity deleted successfully
-        }, fail: { error in
-            // Something went wrong
-        })
-    }.store(in: &cancellable)
+        // The first object is successfully deleted
+    }
+    .store(in: &cancellable)
 ```
 
 ### Remove
 
 ```swift
-
-let removeStorage = SafeCoreDataRemove(dataStorage: dataStorage)
-
+// Removes all results
+safeCoreData
+    .withRemoveParameters
+    .removeFuture(withType: UserEntity.self)
+    .sink { _ in
+        // completion
+    } receiveValue: { removeIds in
+        // Found results deleted
+    }
+    .store(in: &cancellable)
+    
 // Removes results by filter
-removeStorage
+safeCoreData
+    .withRemoveParameters
     .filter(NSPredicate(format: "age == \(Int16(29))"))
     .removeFuture(withType: UserEntity.self)
     .sink {  _ in
         // Completion
     } receiveValue: { removeIds in
         // Found results deleted
-    }.store(in: &cancellable)
-    
-    
-// Removes all results
-removeStorage
-    .removeFuture(withType: UserEntity.self)
-    .sink { _ in
-        // completion
-    } receiveValue: { removeIds in
-        // Found results deleted
-    }.store(in: &cancellable)
+    }
+    .store(in: &cancellable)
 ```
 
 Or
 
 ```swift
-let fetchFuture = SafeCoreDataFetch(dataStorage: dataStorage)
+safeCoreData
+    .withFetchParameters
     .fetchFuture(withType: UserEntity.self)
+    .flatMap { 
+        // Remove object
+        $0.value.first?.deleteFeature() ?? Empty().eraseToAnyPublisher() 
+    }
     .sink { _ in
         // Completion
-    } receiveValue: { fetchResult in
-        let firstObject = fetchResult.value?.first
-        
-        // Synchronous deletion
-        firstObject?.deleteSync()
-    
-        // Or asynchronous deletion
-        firstObject?.deleteAsync(sucsess: {
-            // Entity deleted successfully
-        }, fail: { error in
-            // Something went wrong
-        })
-    }.store(in: &cancellable)
+    } receiveValue: { _ in
+        // The first object is successfully deleted
+    }
+    .store(in: &cancellable)
 ```

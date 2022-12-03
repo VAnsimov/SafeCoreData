@@ -11,17 +11,14 @@ import CoreData
 // MARK: - Save
 extension NSManagedObjectContext {
 
-    public enum OperationResult {
-        case success
-        case error(SafeCoreDataError)
-    }
-
     @discardableResult
-    public func saveSync() -> OperationResult {
-        var result = OperationResult.success
+    public func saveSync() -> Result<Void, SafeCoreDataError> {
+        var result: Result<Void, SafeCoreDataError> = .failure(.failSave)
+
         self.performAndWait {
             result = self.saveThrows()
         }
+
         guard let parentContext = self.parent else {
             return result
         }
@@ -31,13 +28,13 @@ extension NSManagedObjectContext {
         return result
     }
 
-    public func saveAsync(completion: @escaping (OperationResult) -> Void) {
+    public func saveAsync(completion: @escaping (Result<Void, SafeCoreDataError>) -> Void) {
         self.perform {
             var saveEvent = self.saveThrows()
             switch saveEvent {
             case .success:
                 guard let parentContext = self.parent else {
-                    completion(.success)
+                    completion(.success(()))
                     return
                 }
                 parentContext.performAndWait {
@@ -45,23 +42,23 @@ extension NSManagedObjectContext {
                 }
                 completion(saveEvent)
                 
-            case .error:
+            case .failure:
                 completion(saveEvent)
             }
         }
     }
 
     @discardableResult
-    private func saveThrows() -> OperationResult {
+    private func saveThrows() -> Result<Void, SafeCoreDataError> {
         guard self.hasChanges else {
-            return .success
+            return .success(())
         }
 
         do {
             try self.save()
-            return .success
+            return .success(())
         } catch let error {
-            return .error(SafeCoreDataError.save(error: error))
+            return .failure(SafeCoreDataError.save(error: error))
         }
     }
 

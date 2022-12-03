@@ -12,13 +12,17 @@ import CoreData
 // MARK: - Create API
 extension SafeCoreDataService {
 
+    public var withCreateParameters: SafeCoreData.Service.Create {
+        SafeCoreData.Service.Create(dataStorage: self)
+    }
+
     /// Entity creation. Saves to the database
     /// - Parameters:
     ///   - withType: The type of entity to be created
     ///   - configure: Entity creation process configuration
     ///   - updateProperties: Block where you can override entity properties before saving to the database
     ///   - completion: Called when the save was successful, returns the result found OR when something went wrong
-    public func create<T: NSManagedObject>(
+    func create<T: NSManagedObject>(
         withType: T.Type,
         configure: SafeCoreData.Create.Configuration = .init(),
         updateProperties: @escaping (T) -> Void,
@@ -50,7 +54,7 @@ extension SafeCoreDataService {
                 configure.outputThread.action {
                     completion?(result)
                 }
-            case .error:
+            case .failure:
                 let result = SafeCoreData.ResultData<T>(result: .failure(.failSave), context: privateContext)
                 configure.outputThread.action {
                     completion?(result)
@@ -66,7 +70,7 @@ extension SafeCoreDataService {
     ///   - configure: Entity creation process configuration
     ///   - updateProperties: Block where you can override entity properties before saving to the database
     ///   - completion: Called when the save was successful, returns the result found OR when something went wrong
-    public func create<T: NSManagedObject, L>(
+    func create<T: NSManagedObject, L>(
         withType: T.Type,
         list: [L],
         configure: SafeCoreData.Create.Configuration = .init(),
@@ -105,7 +109,7 @@ extension SafeCoreDataService {
                 configure.outputThread.action {
                     completion?(result)
                 }
-            case .error:
+            case .failure:
                 let result = SafeCoreData.ResultData<[T]>(result: .failure(.failSave), context: privateContext)
                 configure.outputThread.action {
                     completion?(result)
@@ -120,7 +124,7 @@ extension SafeCoreDataService {
     ///   - configure: Entity creation process configuration
     ///   - updateProperties: Block where you can override entity properties before saving to the database
     @discardableResult
-    public func createSync<T: NSManagedObject>(
+    func createSync<T: NSManagedObject>(
         withType: T.Type,
         configure: SafeCoreData.Create.ConfigurationSync = .init(),
         updateProperties: @escaping (T) -> Void
@@ -143,7 +147,7 @@ extension SafeCoreDataService {
             
             switch data {
             case .success: result = .init(result: .success(newObject), context: privateContext)
-            case .error: result = .init(result: .failure(.failSave), context: privateContext)
+            case .failure: result = .init(result: .failure(.failSave), context: privateContext)
             }
         }
 

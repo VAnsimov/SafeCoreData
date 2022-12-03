@@ -7,15 +7,16 @@
 
 import Foundation
 import CoreData
+import Combine
 
 // MARK: - Save - API
 extension NSManagedObject {
 
     /// Saving changes to the database. Saving is done synchronously
     @discardableResult
-    public func saveСhangesSync() -> NSManagedObjectContext.OperationResult {
+    public func saveСhangesSync() -> Result<Void, SafeCoreDataError> {
         guard let context = self.managedObjectContext else {
-            return .error(SafeCoreDataError.failGetContext)
+            return .failure(SafeCoreDataError.failGetContext)
         }
         return context.saveSync()
     }
@@ -33,11 +34,52 @@ extension NSManagedObject {
         context.saveAsync(completion: { saveEvent in
             switch saveEvent {
             case .success: sucsess?()
-            case .error: failure?(SafeCoreDataError.failSave)
+            case .failure: failure?(SafeCoreDataError.failSave)
             }
         })
     }
 
+    /// Saving changes to the database. Saving is done asynchronously
+    @discardableResult
+    public func saveСhanges() async -> Result<Void, SafeCoreDataError> {
+        guard let context = self.managedObjectContext else {
+            return .failure(SafeCoreDataError.failGetContext)
+        }
+
+        return await withCheckedContinuation { checkedContinuation in
+            context.saveAsync(completion: { saveEvent in
+                switch saveEvent {
+                case .success:
+                    checkedContinuation.resume(returning: .success(()))
+
+                case .failure:
+                    checkedContinuation.resume(returning: .failure(SafeCoreDataError.failSave))
+                }
+            })
+        }
+    }
+
+    /// Saving changes to the database. Saving is done asynchronously
+    public func saveСhangesFeature() -> AnyPublisher<Void, SafeCoreDataError> {
+        return Deferred {
+            Future<Void, SafeCoreDataError> { promise in
+                guard let context = self.managedObjectContext else {
+                    promise(.failure(SafeCoreDataError.failGetContext))
+                    return
+                }
+
+                context.saveAsync(completion: { saveEvent in
+                    switch saveEvent {
+                    case .success:
+                        promise(.success(()))
+
+                    case .failure:
+                        promise(.failure(SafeCoreDataError.failSave))
+                    }
+                })
+            }
+        }.eraseToAnyPublisher()
+    }
 }
 
 // MARK: - Remove - API
@@ -45,12 +87,12 @@ extension NSManagedObject {
 
     /// Deletion from to the database. Deletion is done synchronously
     @discardableResult
-    public func deleteSync() -> NSManagedObjectContext.OperationResult {
+    public func deleteSync() -> Result<Void, SafeCoreDataError> {
         guard let context = self.managedObjectContext else {
-            return .error(SafeCoreDataError.failGetContext)
+            return .failure(SafeCoreDataError.failGetContext)
         }
 
-        var event: NSManagedObjectContext.OperationResult = .success
+        var event: Result<Void, SafeCoreDataError> = .success(())
         context.performAndWait {
             context.delete(self)
             event = context.saveSync()
@@ -73,11 +115,58 @@ extension NSManagedObject {
             let saveEvent = context.saveSync()
             switch saveEvent {
             case .success: sucsess?()
-            case .error: failure?(SafeCoreDataError.failSave)
+            case .failure: failure?(SafeCoreDataError.failSave)
             }
         }
     }
 
+    /// Deletion from to the database. Deletion is done asynchronously
+    @discardableResult
+    public func delete() async -> Result<Void, SafeCoreDataError> {
+        guard let context = self.managedObjectContext else {
+            return .failure(SafeCoreDataError.failGetContext)
+        }
+
+        return await withCheckedContinuation { checkedContinuation in
+            context.perform {
+                context.delete(self)
+                let saveEvent = context.saveSync()
+
+                switch saveEvent {
+                case .success:
+                    checkedContinuation.resume(returning: .success(()))
+
+                case .failure:
+                    checkedContinuation.resume(returning: .failure(SafeCoreDataError.failSave))
+                }
+            }
+        }
+    }
+
+    /// Deletion from to the database. Deletion is done asynchronously
+    public func deleteFeature() -> AnyPublisher<Void, SafeCoreDataError> {
+        return Deferred {
+            Future<Void, SafeCoreDataError> { promise in
+                guard let context = self.managedObjectContext else {
+                    promise(.failure(SafeCoreDataError.failGetContext))
+                    return
+                }
+
+                context.perform {
+                    context.delete(self)
+                    let saveEvent = context.saveSync()
+
+                    switch saveEvent {
+                    case .success:
+                        promise(.success(()))
+
+                    case .failure:
+                        promise(.failure(SafeCoreDataError.failSave))
+                    }
+                }
+            }
+        }.eraseToAnyPublisher()
+    }
 }
 
 // MARK: - Create - API

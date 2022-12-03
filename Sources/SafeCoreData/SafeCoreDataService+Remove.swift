@@ -11,13 +11,17 @@ import CoreData
 // MARK: - Fetch API
 extension SafeCoreDataService {
 
+    public var withRemoveParameters: SafeCoreData.Service.Remove {
+        SafeCoreData.Service.Remove(dataStorage: self)
+    }
+
     /// Search and removed entities from the database
     /// - Parameters:
     ///   - withType: The type of entity to be remove.
     ///   - configure: Entity remove process configuration
     ///   - success: Called when the remove was successful, Returns id of deleted objects
     ///   - failure: Called when something went wrong
-    public func remove<T: NSManagedObject>(
+    func remove<T: NSManagedObject>(
         withType: T.Type,
         configure: SafeCoreData.Remove.Configuration = .init(),
         success: (([NSManagedObjectID]) -> Void)? = nil,
@@ -39,7 +43,7 @@ extension SafeCoreDataService {
     ///   - withType: The type of entity to be remove
     ///   - configure: Entity remove process configuration
     ///   - completion:  Called when the remove was successful, returns the result found OR when something went wrong
-    public func remove<T: NSManagedObject>(
+    func remove<T: NSManagedObject>(
         withType: T.Type,
         configure: SafeCoreData.Remove.Configuration = .init(),
         completion: ((SafeCoreData.ResultData<[NSManagedObjectID]>) -> Void)? = nil
@@ -77,7 +81,7 @@ extension SafeCoreDataService {
     ///   - type: The type of entity to be remove.
     ///   - config: Entity remove process configuration
     @discardableResult
-    public func removeSync<T: NSManagedObject>(
+    func removeSync<T: NSManagedObject>(
         withType: T.Type,
         configure: SafeCoreData.Remove.ConfigurationSync = .init()
     ) -> SafeCoreData.ResultData<[NSManagedObjectID]> {
@@ -109,7 +113,7 @@ extension SafeCoreDataService {
 
 private extension SafeCoreDataService {
 
-    private func creatFetchRequest(entityName: String,
+    func creatFetchRequest(entityName: String,
                                    withPredicate: NSPredicate?) -> NSFetchRequest<NSFetchRequestResult> {
         let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: entityName)
 

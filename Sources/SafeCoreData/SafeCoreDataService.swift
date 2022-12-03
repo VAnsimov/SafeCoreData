@@ -18,12 +18,10 @@ open class SafeCoreDataService {
     /// - Parameters:
     ///   - databaseName: File name  *.xcdatamodeld
     ///   - bundleIdentifier: The receiver’s bundle identifier.
-    public init?(databaseName: String, bundleIdentifier: String) {
+    public init(databaseName: String, bundleIdentifier: String) throws {
         let storageConfig = SafeCoreData.DataBase.Configuration(modelName: databaseName,
                                                                 bundleType: .identifier(bundleIdentifier))
-        guard let storageContextManager = try? SafeCoreDataContextServer(config: storageConfig) else {
-            return nil
-        }
+        let storageContextManager = try SafeCoreDataContextServer(config: storageConfig)
         self.contextManager = storageContextManager
     }
 
@@ -31,22 +29,18 @@ open class SafeCoreDataService {
     /// - Parameters:
     ///   - databaseName: File name  *.xcdatamodeld
     ///   - bundle: The receiver’s bundle.
-    public init?(databaseName: String, bundle: Bundle) {
+    public init(databaseName: String, bundle: Bundle) throws {
         let storageConfig = SafeCoreData.DataBase.Configuration(modelName: databaseName,
                                                                 bundleType: .bundle(bundle))
-        guard let storageContextManager = try? SafeCoreDataContextServer(config: storageConfig) else {
-            return nil
-        }
+        let storageContextManager = try SafeCoreDataContextServer(config: storageConfig)
         self.contextManager = storageContextManager
     }
 
     /// The SafeCoreData has a link to its internal database, you can also specify which database the SafeCoreDataService will link to.SafeCoreDataService works with the Coredata database, receive, retrieve, update entities. Quick initialization with default settings
     /// - Parameters:
     ///    - database: Customization of Coredata
-    public init?(database: SafeCoreData.DataBase.Configuration) {
-        guard let storageContextManager = try? SafeCoreDataContextServer(config: database) else {
-            return nil
-        }
+    public init(database: SafeCoreData.DataBase.Configuration) throws {
+        let storageContextManager = try SafeCoreDataContextServer(config: database)
         self.contextManager = storageContextManager
     }
 }

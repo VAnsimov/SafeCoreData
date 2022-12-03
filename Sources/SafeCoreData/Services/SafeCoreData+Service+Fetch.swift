@@ -9,16 +9,17 @@ import CoreData
 import Combine
 
 extension SafeCoreData.Service {
-    public class Fetch<T: NSManagedObject>: SafeCoreData.Fetch.Configuration {
+    public class Fetch: SafeCoreData.Fetch.Configuration {
 
-        private let dataStorage: SafeCoreDataService
-
+        private weak var dataStorage: SafeCoreDataService?
+        private let contextManager: SafeCoreDataContextServer
+        
         /// Entity  fetch process configuration
         /// - Parameters:
         ///   - dataStorage: The SafeCoreDataService has a link to its internal database, you can also specify which database the SafeCoreDataService will link to.SafeCoreDataService works with the Coredata database, receive, retrieve, update entities. Quick initialization with default settings
         public init(dataStorage: SafeCoreDataService) {
             self.dataStorage = dataStorage
-
+            self.contextManager = dataStorage.contextManager
             super.init()
         }
 
@@ -32,7 +33,7 @@ extension SafeCoreData.Service {
             failure: ((SafeCoreDataError) -> Void)? = nil,
             success: @escaping ([T]) -> Void
         ) {
-            dataStorage.fetch(withType: withType, configure: self, completion: { result in
+            dataStorage?.fetch(withType: withType, configure: self, completion: { result in
                 switch result.resultType {
                 case let .success(objects):
                     success(objects)
@@ -53,7 +54,7 @@ extension SafeCoreData.Service {
             success: @escaping ([T]) -> Void,
             failure: ((SafeCoreDataError) -> Void)? = nil
         ) {
-            dataStorage.fetch(withType: withType, configure: self, completion: { result in
+            dataStorage?.fetch(withType: withType, configure: self, completion: { result in
                 switch result.resultType {
                 case let .success(objects):
                     success(objects)
@@ -72,7 +73,7 @@ extension SafeCoreData.Service {
             withType: T.Type,
             completion: @escaping (SafeCoreData.ResultData<[T]>) -> Void
         ) {
-            dataStorage.fetch(
+            dataStorage?.fetch(
                 withType: withType,
                 configure: self,
                 completion: completion)
@@ -81,9 +82,16 @@ extension SafeCoreData.Service {
         /// Search and retrieve entities from the database
         /// - Parameters:
         ///   - withType: The type of entity to be fetch.
+        /// - Warning: Do not refer to the data in the `try await`. In the example we will get empty data
+        ///```swift
+        ///let objects = try await safeCoreData
+        ///    .withFetchParameters
+        ///    .fetch(withType: NSManagedObjectType.self)
+        ///    .value
+        ///```
         public func fetch<T: NSManagedObject>(withType: T.Type) async throws -> SafeCoreData.Service.Data<[T]> {
             try await withCheckedThrowingContinuation { checkedContinuation in
-                dataStorage.fetch(
+                dataStorage?.fetch(
                     withType: withType,
                     configure: self,
                     completion: { result in
@@ -109,7 +117,7 @@ extension SafeCoreData.Service {
 
             return Deferred {
                 Future<SafeCoreData.Service.Data<[T]>, SafeCoreDataError> { promise in
-                    dataStorage.fetch(
+                    dataStorage?.fetch(
                         withType: withType,
                         configure: configure,
                         completion: { result in
@@ -131,9 +139,11 @@ extension SafeCoreData.Service {
         public func fetchSync<T: NSManagedObject>(
             withType: T.Type
         ) -> SafeCoreData.ResultData<[T]> {
-            dataStorage.fetchSync(
+            dataStorage?.fetchSync(
                 withType: withType,
-                configure: self)
+                configure: self) ?? .init(
+                    result: .failure(.noneSafeCoreDataService),
+                    context: contextManager.createPrivateContext())
         }
     }
 }

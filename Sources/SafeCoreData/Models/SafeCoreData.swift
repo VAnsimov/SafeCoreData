@@ -7,10 +7,6 @@
 
 import CoreData
 
-public typealias SafeCoreDataFetch = SafeCoreData.Service.Fetch
-public typealias SafeCoreDataCreate = SafeCoreData.Service.Create
-public typealias SafeCoreDataRemove = SafeCoreData.Service.Remove
-
 public enum SafeCoreData {
     public enum DataBase {}
     public enum Create {}

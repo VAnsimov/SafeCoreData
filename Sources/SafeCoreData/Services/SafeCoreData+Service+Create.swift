@@ -11,13 +11,16 @@ import Combine
 extension SafeCoreData.Service {
     public class Create: SafeCoreData.Create.Configuration {
 
-        private let dataStorage: SafeCoreDataService
+        private weak var dataStorage: SafeCoreDataService?
+        private let contextManager: SafeCoreDataContextServer
 
         /// Entity  fetch process configuration
         /// - Parameters:
         ///   - dataStorage: The SafeCoreDataService has a link to its internal database, you can also specify which database the SafeCoreDataService will link to.SafeCoreDataService works with the Coredata database, receive, retrieve, update entities. Quick initialization with default settings
         public init(dataStorage: SafeCoreDataService) {
             self.dataStorage = dataStorage
+            self.contextManager = dataStorage.contextManager
+
             super.init()
         }
 
@@ -40,7 +43,7 @@ extension SafeCoreData.Service.Create {
         failure: ((SafeCoreDataError) -> Void)? = nil,
         success: ((T) -> Void)? = nil
     ) {
-        dataStorage.create(
+        dataStorage?.create(
             withType: withType,
             configure: self,
             updateProperties: updateProperties,
@@ -67,7 +70,7 @@ extension SafeCoreData.Service.Create {
         success: ((T) -> Void)? = nil,
         failure: ((SafeCoreDataError) -> Void)? = nil
     ) {
-        dataStorage.create(
+        dataStorage?.create(
             withType: withType,
             configure: self,
             updateProperties: updateProperties,
@@ -92,7 +95,7 @@ extension SafeCoreData.Service.Create {
         updateProperties: @escaping (T) -> Void,
         completion: ((SafeCoreData.ResultData<T>) -> Void)?
     ) {
-        dataStorage.create(
+        dataStorage?.create(
             withType: withType,
             configure: self,
             updateProperties: updateProperties,
@@ -103,12 +106,21 @@ extension SafeCoreData.Service.Create {
     /// - Parameters:
     ///   - type: The type of entity to be created
     ///   - updateProperties: Block where you can override entity properties before saving to the database
+    /// - Warning: Do not refer to the data in the `try await`. In the example we will get empty data
+    ///
+    ///```swift
+    ///let objects = try await safeCoreData
+    ///    .withCreateParameters
+    ///    .createObject(withType: NSManagedObjectType.self, updateProperties: { _ in })
+    ///    .value
+    ///```
+    @discardableResult
     public func createObject<T: NSManagedObject>(
         withType: T.Type,
         updateProperties: @escaping (T) -> Void
     ) async throws -> SafeCoreData.Service.Data<T> {
         try await withCheckedThrowingContinuation { checkedContinuation in
-            dataStorage.create(
+            dataStorage?.create(
                 withType: withType,
                 configure: self,
                 updateProperties: updateProperties,
@@ -137,7 +149,7 @@ extension SafeCoreData.Service.Create {
 
         return Deferred {
             Future<SafeCoreData.Service.Data<T>, SafeCoreDataError> { promise in
-                dataStorage.create(
+                dataStorage?.create(
                     withType: withType,
                     configure: configure,
                     updateProperties: updateProperties,
@@ -158,14 +170,17 @@ extension SafeCoreData.Service.Create {
     /// - Parameters:
     ///   - type: The type of entity to be created
     ///   - updateProperties: Block where you can override entity properties before saving to the database
+    @discardableResult
     public func createObjectSync<T: NSManagedObject>(
         withType: T.Type,
         updateProperties: @escaping (T) -> Void
     ) -> SafeCoreData.ResultData<T> {
-        dataStorage.createSync(
+        dataStorage?.createSync(
             withType: withType,
             configure: self,
-            updateProperties: updateProperties)
+            updateProperties: updateProperties) ?? .init(
+                result: .failure(.noneSafeCoreDataService),
+                context: contextManager.createPrivateContext())
     }
 }
 
@@ -187,7 +202,7 @@ extension SafeCoreData.Service.Create {
         updateProperties: @escaping (L, T) -> Void,
         completion: ((SafeCoreData.ResultData<[T]>) -> Void)?
     ) {
-        dataStorage.create(
+        dataStorage?.create(
             withType: withType,
             list: list,
             configure: self,
@@ -211,7 +226,7 @@ extension SafeCoreData.Service.Create {
         success: (([T]) -> Void)? = nil,
         failure: ((SafeCoreDataError) -> Void)? = nil
     ) {
-        dataStorage.create(
+        dataStorage?.create(
             withType: withType,
             list: list,
             configure: self,
@@ -242,7 +257,7 @@ extension SafeCoreData.Service.Create {
         failure: ((SafeCoreDataError) -> Void)? = nil,
         success: (([T]) -> Void)? = nil
     ) {
-        dataStorage.create(
+        dataStorage?.create(
             withType: withType,
             list: list,
             configure: self,
@@ -262,15 +277,22 @@ extension SafeCoreData.Service.Create {
     /// - Parameters:
     ///   - withType: The type of entity to be created
     ///   - list: objects to be create
-    ///   - configure: Entity creation process configuration
+    /// - Warning: Do not refer to the data in the `try await`. In the example we will get empty data
+    ///
+    ///```swift
+    ///let objects = try await safeCoreData
+    ///    .withCreateParameters
+    ///    .createListOfObjects(withType: NSManagedObjectType.self, list: [], updateProperties: { _ in })
+    ///    .value
+    ///```
+    @discardableResult
     public func createListOfObjects<T: NSManagedObject, L>(
         withType: T.Type,
         list: [L],
-        configure: SafeCoreData.Create.Configuration = .init(),
         updateProperties: @escaping (L, T) -> Void
     ) async throws -> SafeCoreData.Service.Data<[T]> {
         try await withCheckedThrowingContinuation { checkedContinuation in
-            dataStorage.create(
+            dataStorage?.create(
                 withType: withType,
                 list: list,
                 configure: self,
@@ -295,7 +317,6 @@ extension SafeCoreData.Service.Create {
     public func createListOfObjectsFuture<T: NSManagedObject, L>(
         withType: T.Type,
         list: [L],
-        configure: SafeCoreData.Create.Configuration = .init(),
         updateProperties: @escaping (L, T) -> Void
     ) -> AnyPublisher<SafeCoreData.Service.Data<[T]>, SafeCoreDataError> {
         let configure: SafeCoreData.Create.Configuration = self
@@ -303,7 +324,7 @@ extension SafeCoreData.Service.Create {
 
         return Deferred {
             Future<SafeCoreData.Service.Data<[T]>, SafeCoreDataError> { promise in
-                dataStorage.create(
+                dataStorage?.create(
                     withType: withType,
                     list: list,
                     configure: configure,

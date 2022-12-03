@@ -11,12 +11,16 @@ import CoreData
 // MARK: - Fetch API
 extension SafeCoreDataService {
 
+    public var withFetchParameters: SafeCoreData.Service.Fetch {
+        SafeCoreData.Service.Fetch(dataStorage: self)
+    }
+
     /// Search and retrieve entities from the database
     /// - Parameters:
     ///   - withType: The type of entity to be fetch.
     ///   - configure: Entity fetch process configuration
     ///   - completion: Called when the was successful, returns the result found OR when something went wrong
-    public func fetch<T: NSManagedObject>(
+    func fetch<T: NSManagedObject>(
         withType: T.Type,
         configure: SafeCoreData.Fetch.Configuration = .init(),
         completion: @escaping (SafeCoreData.ResultData<[T]>) -> Void
@@ -48,7 +52,7 @@ extension SafeCoreDataService {
     /// - Parameters:
     ///   - withType: The type of entity to be fetch.
     ///   - configure: Entity fetch process configuration
-    public func fetchSync<T: NSManagedObject>(
+    func fetchSync<T: NSManagedObject>(
         withType: T.Type,
         configure: SafeCoreData.Fetch.ConfigurationSync = .init()
     ) -> SafeCoreData.ResultData<[T]> {

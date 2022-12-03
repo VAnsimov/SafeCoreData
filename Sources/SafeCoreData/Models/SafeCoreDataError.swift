@@ -17,4 +17,5 @@ public enum SafeCoreDataError: Error {
     case failCreate
     case failRemove
     case save(error: Error)
+    case noneSafeCoreDataService
 }

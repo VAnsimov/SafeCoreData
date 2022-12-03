@@ -7,21 +7,18 @@
 
 import XCTest
 @testable import SafeCoreData
-import Combine
 
 class SafeCoreDataRemoveTests: XCTestCase {
 
     private var dataStorage: SafeCoreDataService!
     private var createHelper: SafeCoreDataCreateHelper!
-    private var cancellable: Set<AnyCancellable>!
 
     override func setUp() {
-        dataStorage = SafeCoreDataService(database: .init(
+        dataStorage = try? SafeCoreDataService(database: .init(
             modelName: "UnitTestStorage",
             bundleType: .bundle(.module)))
 
         createHelper = SafeCoreDataCreateHelper(dataStorage: dataStorage)
-        cancellable = []
 
         // Clears the database
         _ = self.dataStorage.removeSync(withType: UnitTestEntity.self)
@@ -38,7 +35,8 @@ extension SafeCoreDataRemoveTests {
     func testRemoveThreadGlobal() {
         let expectation = XCTestExpectation(description: "failure: expectation - \(#function)")
 
-        SafeCoreDataRemove(dataStorage: dataStorage)
+        dataStorage
+            .withRemoveParameters
             .outputThread(.global)
             .remove(withType: UnitTestEntity.self, success: { object in
                 XCTAssertEqual(Thread.isMainThread, false)
@@ -53,7 +51,8 @@ extension SafeCoreDataRemoveTests {
     func testRemoveThreadMain() {
         let expectation = XCTestExpectation(description: "failure: expectation - \(#function)")
 
-        SafeCoreDataRemove(dataStorage: dataStorage)
+        dataStorage
+            .withRemoveParameters
             .outputThread(.main)
             .remove(withType: UnitTestEntity.self, success: { object in
                 XCTAssertEqual(Thread.isMainThread, true)
@@ -76,7 +75,8 @@ extension SafeCoreDataRemoveTests {
         })
 
         // Create remove
-        let result = SafeCoreDataRemove(dataStorage: dataStorage)
+        let result = dataStorage
+            .withRemoveParameters
             .removeSync(withType: UnitTestEntity.self)
 
         switch result.resultType {
@@ -98,7 +98,8 @@ extension SafeCoreDataRemoveTests {
         })
 
         // Remove
-        SafeCoreDataRemove(dataStorage: dataStorage)
+        dataStorage
+            .withRemoveParameters
             .remove(withType: UnitTestEntity.self, success: { ids in
                 XCTAssertEqual(ids.count, count)
                 expectation.fulfill()
@@ -108,44 +109,6 @@ extension SafeCoreDataRemoveTests {
             })
 
         wait(for: [expectation], timeout: 10)
-    }
-
-    func testRemoveCombine() {
-        let expectation = XCTestExpectation(description: "failure: expectation - \(#function)")
-        let count = 100
-
-        // Create
-        createHelper.syncCreateObjets(count: count, updateProperties: nil, success: nil, failure: {
-            XCTFail()
-        })
-
-        // Remove
-        let removeFuture = SafeCoreDataRemove(dataStorage: dataStorage)
-            .removeFuture(withType: UnitTestEntity.self)
-
-        // Fetch
-        let fetchFuture = SafeCoreDataFetch(dataStorage: dataStorage)
-            .fetchFuture(withType: UnitTestEntity.self)
-
-        removeFuture
-            .combineLatest(fetchFuture)
-            .sink(receiveCompletion: { completion in
-                switch completion {
-                case let .failure(error):
-                    XCTFail(error.localizedDescription)
-                    expectation.fulfill()
-
-                case .finished:
-                    break
-                }
-            }, receiveValue: { removeResult, fetchResult in
-                XCTAssertEqual(removeResult.value.count, count)
-                XCTAssertEqual(fetchResult.value.count, 0)
-                expectation.fulfill()
-            })
-            .store(in: &cancellable)
-
-        wait(for: [expectation], timeout: 2)
     }
 
     func testRemovePredicate() {
@@ -163,13 +126,15 @@ extension SafeCoreDataRemoveTests {
         let searchIndex = Int16(3)
 
         // Remove
-        SafeCoreDataRemove(dataStorage: dataStorage)
+        dataStorage
+            .withRemoveParameters
             .filter(NSPredicate(format: "attributeTwo != \(searchIndex)"))
-            .remove(withType: UnitTestEntity.self, success: { ids in
+            .remove(withType: UnitTestEntity.self, success: { [weak self] ids in
                 XCTAssertEqual(ids.count, count - 1)
 
                 // Fetch
-                SafeCoreDataFetch(dataStorage: dataStorage)
+                self?.dataStorage
+                    .withFetchParameters
                     .fetch(withType: UnitTestEntity.self, success: { objects in
                         XCTAssertEqual(objects.count, 1)
                         XCTAssertEqual(objects[0].attributeTwo, searchIndex)
@@ -197,15 +162,17 @@ extension SafeCoreDataRemoveTests {
         })
 
         // Fetch
-        SafeCoreDataFetch(dataStorage: dataStorage)
-            .fetch(withType: UnitTestEntity.self, success: { fetch in
+        dataStorage
+            .withFetchParameters
+            .fetch(withType: UnitTestEntity.self, success: { [weak self] fetch in
                 XCTAssertEqual(fetch.count, 1)
 
                 // Remove
                 fetch[0].deleteAsync(sucsess: {
 
                     // Fetch
-                    SafeCoreDataFetch(dataStorage: dataStorage)
+                    self?.dataStorage
+                        .withFetchParameters
                         .fetch(withType: UnitTestEntity.self, success: { fetch in
                             XCTAssertEqual(fetch.count, 0)
                             expectation.fulfill()
@@ -235,7 +202,8 @@ extension SafeCoreDataRemoveTests {
             XCTFail()
         })
 
-        let fetchService = SafeCoreDataFetch(dataStorage: dataStorage)
+        let fetchService = dataStorage
+            .withFetchParameters
 
         // Fetch
         fetchService

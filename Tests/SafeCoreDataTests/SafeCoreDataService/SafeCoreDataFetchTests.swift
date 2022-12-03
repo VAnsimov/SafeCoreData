@@ -7,7 +7,6 @@
 
 import XCTest
 @testable import SafeCoreData
-import Combine
 
 // MARK: - Fetch
 
@@ -15,16 +14,14 @@ class SafeCoreDataFetchTests: XCTestCase {
 
     private var dataStorage: SafeCoreDataService!
     private var createHelper: SafeCoreDataCreateHelper!
-    private var cancellable: Set<AnyCancellable>!
 
     override func setUp() {
-        dataStorage = SafeCoreDataService(database: .init(
+        dataStorage = try? SafeCoreDataService(database: .init(
             modelName: "UnitTestStorage",
             bundleType: .bundle(.module)))
 
 
         createHelper = SafeCoreDataCreateHelper(dataStorage: dataStorage)
-        cancellable = []
 
         // Clears the database
         _ = self.dataStorage.removeSync(withType: UnitTestEntity.self)
@@ -41,7 +38,8 @@ extension SafeCoreDataFetchTests {
     func testFetchThreadGlobal() {
         let expectation = XCTestExpectation(description: "failure: expectation - \(#function)")
 
-        SafeCoreDataFetch(dataStorage: dataStorage)
+        dataStorage
+            .withFetchParameters
             .outputThread(.global)
             .fetch(withType: UnitTestEntity.self, success: { object in
                 XCTAssertEqual(Thread.isMainThread, false)
@@ -56,7 +54,8 @@ extension SafeCoreDataFetchTests {
     func testFetchThreadMain() {
         let expectation = XCTestExpectation(description: "failure: expectation - \(#function)")
 
-        SafeCoreDataFetch(dataStorage: dataStorage)
+        dataStorage
+            .withFetchParameters
             .outputThread(.main)
             .fetch(withType: UnitTestEntity.self, success: { object in
                 XCTAssertEqual(Thread.isMainThread, true)
@@ -70,7 +69,8 @@ extension SafeCoreDataFetchTests {
 
     func testFetchSync() {
         // Create synn
-        let createResult = SafeCoreDataCreate(dataStorage: dataStorage)
+        let createResult = dataStorage
+            .withCreateParameters
             .createObjectSync(withType: UnitTestEntity.self, updateProperties: { newObject in
                 newObject.attributeOne = "test"
                 newObject.attributeTwo = 1234
@@ -88,7 +88,8 @@ extension SafeCoreDataFetchTests {
         }
 
         // Fetch sync
-        let fecthResult = SafeCoreDataFetch(dataStorage: dataStorage)
+        let fecthResult = dataStorage
+            .withFetchParameters
             .fetchSync(withType: UnitTestEntity.self)
 
         switch fecthResult.resultType {
@@ -104,41 +105,6 @@ extension SafeCoreDataFetchTests {
         }
     }
 
-    func testFetchCombine() {
-        let expectation = XCTestExpectation(description: "failure: expectation - \(#function)")
-
-        // Create
-        let createObjectFuture = SafeCoreDataCreate(dataStorage: dataStorage)
-            .createObjectFuture(withType: UnitTestEntity.self, updateProperties: { newObject in
-                newObject.attributeOne = "test"
-                newObject.attributeTwo = 1234
-            })
-
-        // Fetch
-        let fetchFuture = SafeCoreDataFetch(dataStorage: dataStorage)
-            .fetchFuture(withType: UnitTestEntity.self).eraseToAnyPublisher()
-
-        createObjectFuture
-            .flatMap { _ in fetchFuture }
-            .sink { completion in
-                switch completion {
-                case let .failure(error):
-                    XCTFail(error.localizedDescription)
-                    expectation.fulfill()
-
-                case .finished:
-                    break
-                }
-            } receiveValue: { fetchResult in
-                XCTAssertEqual(fetchResult.value.count, 1)
-                XCTAssertEqual(fetchResult.value[0].attributeOne, "test")
-                XCTAssertEqual(fetchResult.value[0].attributeTwo, 1234)
-                expectation.fulfill()
-            }.store(in: &cancellable)
-
-        wait(for: [expectation], timeout: 20)
-    }
-
     func testFetchPredicate() {
         let expectation = XCTestExpectation(description: "failure: expectation - \(#function)")
 
@@ -151,7 +117,8 @@ extension SafeCoreDataFetchTests {
 
         let searchIndex = Int16(3)
 
-        SafeCoreDataFetch(dataStorage: self.dataStorage)
+        dataStorage
+            .withFetchParameters
             .filter(NSPredicate(format: "attributeTwo == \(searchIndex)"))
             .fetch(withType: UnitTestEntity.self, completion: { result in
                 switch result.resultType {
@@ -180,7 +147,8 @@ extension SafeCoreDataFetchTests {
         })
 
         // Fetch
-        SafeCoreDataFetch(dataStorage: dataStorage)
+        dataStorage
+            .withFetchParameters
             .sort([NSSortDescriptor(key: "attributeTwo", ascending: false)])
             .fetch(withType: UnitTestEntity.self, success: { objects in
                 var previousValue: Int16 = objects[0].attributeTwo

@@ -11,13 +11,15 @@ import Combine
 extension SafeCoreData.Service {
     public class Remove: SafeCoreData.Remove.Configuration {
 
-        private let dataStorage: SafeCoreDataService
+        private weak var dataStorage: SafeCoreDataService?
+        private let contextManager: SafeCoreDataContextServer
 
         /// Entity  fetch process configuration
         /// - Parameters:
         ///   - dataStorage: The SafeCoreDataService has a link to its internal database, you can also specify which database the SafeCoreDataService will link to.SafeCoreDataService works with the Coredata database, receive, retrieve, update entities. Quick initialization with default settings
         public init(dataStorage: SafeCoreDataService) {
             self.dataStorage = dataStorage
+            self.contextManager = dataStorage.contextManager
 
             super.init()
         }
@@ -33,7 +35,7 @@ extension SafeCoreData.Service {
             failure: ((SafeCoreDataError) -> Void)? = nil,
             success: (([NSManagedObjectID]) -> Void)? = nil
         ) {
-            dataStorage.remove(
+            dataStorage?.remove(
                 withType: withType,
                 configure: self,
                 success: success,
@@ -50,7 +52,7 @@ extension SafeCoreData.Service {
             success: (([NSManagedObjectID]) -> Void)? = nil,
             failure: ((SafeCoreDataError) -> Void)? = nil
         ) {
-            dataStorage.remove(
+            dataStorage?.remove(
                 withType: withType,
                 configure: self,
                 success: success,
@@ -65,7 +67,7 @@ extension SafeCoreData.Service {
             withType: T.Type,
             completion: ((SafeCoreData.ResultData<[NSManagedObjectID]>) -> Void)?
         ) {
-            dataStorage.remove(
+            dataStorage?.remove(
                 withType: withType,
                 configure: self,
                 completion: completion)
@@ -74,11 +76,18 @@ extension SafeCoreData.Service {
         /// Search and removed entities from the database
         /// - Parameters:
         ///   - type: The type of entity to be remove.
+        /// - Warning: Do not refer to the data in the `try await`. In the example we will get empty data
+        ///```swift
+        ///let objects = try await safeCoreData
+        ///    .withFetchParameters
+        ///    .remove(withType: NSManagedObjectType.self)
+        ///    .value
+        ///```
         public func remove<T: NSManagedObject>(
             withType: T.Type
         ) async throws -> SafeCoreData.Service.Data<[NSManagedObjectID]> {
             try await withCheckedThrowingContinuation { checkedContinuation in
-                dataStorage.remove(
+                dataStorage?.remove(
                     withType: withType,
                     configure: self,
                     completion: { result in
@@ -104,7 +113,7 @@ extension SafeCoreData.Service {
 
             return Deferred {
                 Future<SafeCoreData.Service.Data<[NSManagedObjectID]>, SafeCoreDataError> { promise in
-                    dataStorage.remove(
+                    dataStorage?.remove(
                         withType: withType,
                         configure: configure,
                         completion: { result in
@@ -126,9 +135,11 @@ extension SafeCoreData.Service {
         public func removeSync<T: NSManagedObject>(
             withType: T.Type
         ) -> SafeCoreData.ResultData<[NSManagedObjectID]> {
-            dataStorage.removeSync(
+            dataStorage?.removeSync(
                 withType: withType,
-                configure: self)
+                configure: self) ?? .init(
+                    result: .failure(.noneSafeCoreDataService),
+                    context: contextManager.createPrivateContext())
         }
     }
 }
